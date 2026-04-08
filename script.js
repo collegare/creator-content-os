@@ -1048,6 +1048,309 @@ $('importFileInput').addEventListener('change',e=>{
 });
 
 // ============================================================
+// AI: WHAT SHOULD I POST NEXT (Dashboard)
+// ============================================================
+$('runAISuggestBtn').addEventListener('click', async () => {
+  const resultsEl = $('aiSuggestResults');
+  const btn = $('runAISuggestBtn');
+  btn.disabled = true;
+  btn.innerHTML = '<div class="spinner-sm"></div> Analyzing...';
+  resultsEl.innerHTML = '<div class="ai-loading"><div class="spinner"></div><p>AI is analyzing your content patterns...</p></div>';
+
+  try {
+    const content = getArr(CONTENT_KEY);
+    const performance = getArr(PERF_KEY);
+    const settings = getObj(SETTINGS_KEY);
+    const profile = { niche: settings.niche || '', stage: settings.creator_stage || '', followers: settings.follower_count || '', platforms: settings.platforms || [], platform: settings.platforms?.[0] || '' };
+
+    const resp = await fetch('/api/suggest', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ content, performance, profile })
+    });
+    const data = await resp.json();
+    if (data.error) { toast(data.error, 'error'); resultsEl.innerHTML = ''; return; }
+    const s = data.suggestions;
+    if (!s || s.raw) { toast('Could not parse AI response', 'error'); resultsEl.innerHTML = `<pre style="font-size:12px;overflow:auto;max-height:300px;">${s?.raw || 'No response'}</pre>`; return; }
+
+    // Render suggestions
+    let html = '<div class="ai-results-container">';
+
+    // Next posts
+    if (s.nextPosts?.length) {
+      html += '<h4 style="margin-bottom:12px;"><i class="ph ph-lightning"></i> Recommended Next Posts</h4><div class="ai-suggestions-grid">';
+      s.nextPosts.forEach(p => {
+        html += `<div class="ai-suggestion-card">
+          <div class="ai-suggestion-header">
+            <span class="badge badge-sm">${p.platform || ''}</span>
+            <span class="badge badge-sm badge-outline">${p.pillar || ''}</span>
+            <span class="badge badge-sm ${p.priority === 'high' ? 'badge-high' : p.priority === 'medium' ? 'badge-med' : 'badge-low'}">${p.priority || ''}</span>
+          </div>
+          <h5>${p.title || ''}</h5>
+          <p class="ai-suggestion-hook">"${p.hook || ''}"</p>
+          <p class="ai-suggestion-why">${p.why || ''}</p>
+          <span class="badge badge-sm badge-outline">${p.format || ''}</span>
+        </div>`;
+      });
+      html += '</div>';
+    }
+
+    // Week plan
+    if (s.weekPlan) {
+      html += '<h4 style="margin:20px 0 12px;"><i class="ph ph-calendar-dots"></i> Your Week Plan</h4><div class="ai-week-plan">';
+      const days = ['monday','tuesday','wednesday','thursday','friday','saturday','sunday'];
+      const dayLabels = ['Mon','Tue','Wed','Thu','Fri','Sat','Sun'];
+      days.forEach((d, i) => {
+        if (s.weekPlan[d]) {
+          html += `<div class="ai-week-day"><strong>${dayLabels[i]}</strong><span>${s.weekPlan[d]}</span></div>`;
+        }
+      });
+      html += '</div>';
+    }
+
+    // Gaps
+    if (s.gaps?.length) {
+      html += '<h4 style="margin:20px 0 12px;"><i class="ph ph-warning-circle"></i> Content Gaps</h4><div class="ai-gaps">';
+      s.gaps.forEach(g => {
+        html += `<div class="ai-gap-item"><strong>${g.area}</strong><span>${g.suggestion}</span></div>`;
+      });
+      html += '</div>';
+    }
+
+    // Insight
+    if (s.insight) {
+      html += `<div class="ai-insight"><i class="ph ph-lightbulb"></i><p>${s.insight}</p></div>`;
+    }
+
+    html += '</div>';
+    resultsEl.innerHTML = html;
+    toast('AI suggestions ready');
+  } catch (err) {
+    console.error('Suggest error:', err);
+    toast('AI suggestions unavailable — check your API key and try again', 'error');
+    resultsEl.innerHTML = '';
+  } finally {
+    btn.disabled = false;
+    btn.innerHTML = '<i class="ph ph-sparkle"></i> Get AI Suggestions';
+  }
+});
+
+// ============================================================
+// AI: STRATEGY REVIEW (Intelligence Tab)
+// ============================================================
+$('runAIStrategyBtn').addEventListener('click', async () => {
+  const resultsEl = $('aiStrategyResults');
+  const btn = $('runAIStrategyBtn');
+  btn.disabled = true;
+  btn.innerHTML = '<div class="spinner-sm"></div> Analyzing...';
+  resultsEl.innerHTML = '<div class="ai-loading"><div class="spinner"></div><p>Running deep strategy analysis...</p></div>';
+
+  try {
+    const content = getArr(CONTENT_KEY);
+    const performance = getArr(PERF_KEY);
+    const revenue = getArr(MONET_KEY);
+    const settings = getObj(SETTINGS_KEY);
+    const quarterly = getObj(QUARTERLY_KEY);
+    const profile = { name: settings.display_name || '', niche: settings.niche || '', stage: settings.creator_stage || '', followers: settings.follower_count || '', platform: settings.platforms?.[0] || '', platforms: settings.platforms || [] };
+
+    const resp = await fetch('/api/strategy', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ content, performance, revenue, profile, quarterly })
+    });
+    const data = await resp.json();
+    if (data.error) { toast(data.error, 'error'); resultsEl.innerHTML = ''; return; }
+    const st = data.strategy;
+    if (!st || st.raw) { toast('Could not parse AI response', 'error'); resultsEl.innerHTML = `<pre style="font-size:12px;overflow:auto;max-height:300px;">${st?.raw || 'No response'}</pre>`; return; }
+
+    let html = '<div class="ai-results-container">';
+
+    // Grade + headline
+    html += `<div class="ai-strategy-header">
+      <div class="ai-grade ai-grade-${(st.overallGrade || 'C')[0].toLowerCase()}">${st.overallGrade || '?'}</div>
+      <p class="ai-headline">${st.headline || ''}</p>
+    </div>`;
+
+    // Strengths & Weaknesses
+    html += '<div class="ai-sw-grid">';
+    if (st.strengths?.length) {
+      html += '<div class="ai-sw-col ai-strengths"><h4><i class="ph ph-check-circle"></i> Strengths</h4>';
+      st.strengths.forEach(s => { html += `<div class="ai-sw-item"><strong>${s.title}</strong><p>${s.detail}</p></div>`; });
+      html += '</div>';
+    }
+    if (st.weaknesses?.length) {
+      html += '<div class="ai-sw-col ai-weaknesses"><h4><i class="ph ph-warning"></i> Weaknesses</h4>';
+      st.weaknesses.forEach(w => { html += `<div class="ai-sw-item"><strong>${w.title}</strong><p>${w.detail}</p></div>`; });
+      html += '</div>';
+    }
+    html += '</div>';
+
+    // 30 Day Plan
+    if (st.thirtyDayPlan?.length) {
+      html += '<h4 style="margin:20px 0 12px;"><i class="ph ph-calendar-check"></i> 30-Day Action Plan</h4><div class="ai-plan-grid">';
+      st.thirtyDayPlan.forEach(w => {
+        html += `<div class="ai-plan-week"><div class="ai-plan-week-header">Week ${w.week}: ${w.focus}</div><ul>${(w.actions||[]).map(a => `<li>${a}</li>`).join('')}</ul></div>`;
+      });
+      html += '</div>';
+    }
+
+    // Monetization advice
+    if (st.monetizationAdvice) {
+      const m = st.monetizationAdvice;
+      html += `<div class="ai-advice-card"><h4><i class="ph ph-currency-circle-dollar"></i> Monetization Advice</h4><p><strong>Next stream:</strong> ${m.nextStream || ''}</p><p>${m.why || ''}</p><p class="ai-first-step"><i class="ph ph-arrow-right"></i> <strong>First step:</strong> ${m.firstStep || ''}</p></div>`;
+    }
+
+    // Additional insights
+    html += '<div class="ai-insights-row">';
+    if (st.contentMixAdvice) html += `<div class="ai-insight-item"><h5><i class="ph ph-chart-pie-slice"></i> Content Mix</h5><p>${st.contentMixAdvice}</p></div>`;
+    if (st.growthLever) html += `<div class="ai-insight-item"><h5><i class="ph ph-rocket"></i> Growth Lever</h5><p>${st.growthLever}</p></div>`;
+    if (st.stopDoing) html += `<div class="ai-insight-item ai-stop"><h5><i class="ph ph-stop-circle"></i> Stop Doing</h5><p>${st.stopDoing}</p></div>`;
+    html += '</div>';
+
+    html += '</div>';
+    resultsEl.innerHTML = html;
+    toast('Strategy review complete');
+  } catch (err) {
+    console.error('Strategy error:', err);
+    toast('Strategy review unavailable — check your API key and try again', 'error');
+    resultsEl.innerHTML = '';
+  } finally {
+    btn.disabled = false;
+    btn.innerHTML = '<i class="ph ph-sparkle"></i> Run AI Strategy Review';
+  }
+});
+
+// ============================================================
+// AI: WRITER (Prompt Studio Tab)
+// ============================================================
+$('runAIWriterBtn').addEventListener('click', async () => {
+  const topic = $('aiWriterTopic').value.trim();
+  if (!topic) { toast('Please enter a topic', 'error'); return; }
+
+  const resultsEl = $('aiWriterResults');
+  const btn = $('runAIWriterBtn');
+  btn.disabled = true;
+  btn.innerHTML = '<div class="spinner-sm"></div> Generating...';
+  resultsEl.innerHTML = '<div class="ai-loading"><div class="spinner"></div><p>AI is writing your content...</p></div>';
+
+  const type = $('aiWriterType').value;
+  const platform = $('aiWriterPlatform').value;
+  const tone = $('aiWriterTone').value;
+  const format = $('aiWriterFormat').value;
+  const context = $('aiWriterContext').value.trim();
+  const settings = getObj(SETTINGS_KEY);
+  const niche = settings.niche || '';
+
+  try {
+    const resp = await fetch('/api/generate', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ type, topic, platform, niche, tone, format, context })
+    });
+    const data = await resp.json();
+    if (data.error) { toast(data.error, 'error'); resultsEl.innerHTML = ''; return; }
+    const r = data.result;
+    if (!r || r.raw) { toast('Could not parse AI response', 'error'); resultsEl.innerHTML = `<pre style="font-size:12px;overflow:auto;max-height:300px;">${r?.raw || 'No response'}</pre>`; return; }
+
+    let html = '<div class="ai-results-container">';
+
+    // HOOKS
+    if (type === 'hooks' && r.hooks?.length) {
+      html += '<h4 style="margin-bottom:12px;"><i class="ph ph-megaphone"></i> Scroll-Stopping Hooks</h4><div class="ai-hooks-list">';
+      r.hooks.forEach((h, i) => {
+        html += `<div class="ai-hook-item">
+          <div class="ai-hook-num">${i + 1}</div>
+          <div class="ai-hook-body">
+            <p class="ai-hook-text">"${h.text}"</p>
+            <div class="ai-hook-meta"><span class="badge badge-sm badge-outline">${h.style || ''}</span><span>${h.why || ''}</span></div>
+          </div>
+          <button class="btn btn-xs btn-ghost ai-copy-btn" data-copy="${h.text.replace(/"/g, '&quot;')}"><i class="ph ph-copy"></i></button>
+        </div>`;
+      });
+      html += '</div>';
+    }
+
+    // CAPTIONS
+    if (type === 'caption' && r.captions?.length) {
+      html += '<h4 style="margin-bottom:12px;"><i class="ph ph-text-aa"></i> Caption Versions</h4>';
+      r.captions.forEach(c => {
+        html += `<div class="ai-caption-card">
+          <h5>${c.version}</h5>
+          <p class="ai-caption-hook"><strong>Hook:</strong> ${c.hook || ''}</p>
+          <p class="ai-caption-body">${c.body || ''}</p>
+          <p class="ai-caption-cta"><strong>CTA:</strong> ${c.cta || ''}</p>
+          <div class="ai-caption-tags">${(c.hashtags || []).map(t => `<span class="badge badge-sm badge-outline">#${t}</span>`).join(' ')}</div>
+          <button class="btn btn-xs btn-ghost ai-copy-btn" data-copy="${(c.hook + '\n\n' + c.body + '\n\n' + c.cta + '\n\n' + (c.hashtags||[]).map(t=>'#'+t).join(' ')).replace(/"/g, '&quot;')}"><i class="ph ph-copy"></i> Copy</button>
+        </div>`;
+      });
+    }
+
+    // SCRIPT
+    if (type === 'script' && r.script) {
+      const sc = r.script;
+      html += '<h4 style="margin-bottom:12px;"><i class="ph ph-film-script"></i> Video Script</h4>';
+      html += `<div class="ai-script-card">
+        <div class="ai-script-section"><span class="ai-script-label">HOOK (0-3s)</span><p>${sc.hook || ''}</p></div>
+        <div class="ai-script-section"><span class="ai-script-label">SETUP (3-13s)</span><p>${sc.setup || ''}</p></div>
+        <div class="ai-script-section"><span class="ai-script-label">BODY (13-43s)</span><p>${sc.body || ''}</p></div>
+        <div class="ai-script-section"><span class="ai-script-label">PAYOFF (43-53s)</span><p>${sc.payoff || ''}</p></div>
+        <div class="ai-script-section"><span class="ai-script-label">CTA (53-${sc.totalEstimatedSeconds || 60}s)</span><p>${sc.cta || ''}</p></div>
+        <div class="ai-script-extras">
+          ${sc.onScreenText?.length ? `<div><strong>On-Screen Text:</strong><ul>${sc.onScreenText.map(t => `<li>${t}</li>`).join('')}</ul></div>` : ''}
+          ${sc.bRollSuggestions?.length ? `<div><strong>B-Roll Ideas:</strong><ul>${sc.bRollSuggestions.map(t => `<li>${t}</li>`).join('')}</ul></div>` : ''}
+          ${sc.musicMood ? `<div><strong>Music Mood:</strong> ${sc.musicMood}</div>` : ''}
+        </div>
+      </div>`;
+
+      if (r.alternateHooks?.length) {
+        html += '<h5 style="margin:16px 0 8px;">Alternate Hooks</h5><div class="ai-hooks-list">';
+        r.alternateHooks.forEach((h, i) => {
+          html += `<div class="ai-hook-item"><div class="ai-hook-num">${i+1}</div><div class="ai-hook-body"><p class="ai-hook-text">"${h}"</p></div><button class="btn btn-xs btn-ghost ai-copy-btn" data-copy="${h.replace(/"/g,'&quot;')}"><i class="ph ph-copy"></i></button></div>`;
+        });
+        html += '</div>';
+      }
+    }
+
+    // IDEAS
+    if (type === 'ideas' && r.ideas?.length) {
+      html += '<h4 style="margin-bottom:12px;"><i class="ph ph-lightbulb"></i> Content Ideas</h4><div class="ai-ideas-grid">';
+      r.ideas.forEach(idea => {
+        html += `<div class="ai-idea-card">
+          <h5>${idea.title || ''}</h5>
+          <p class="ai-idea-hook">"${idea.hook || ''}"</p>
+          <p class="ai-idea-angle">${idea.angle || ''}</p>
+          <div class="ai-idea-meta">
+            <span class="badge badge-sm badge-outline">${idea.format || ''}</span>
+            <span class="badge badge-sm badge-outline">${idea.pillar || ''}</span>
+            <span class="badge badge-sm ${idea.difficulty === 'easy' ? 'badge-low' : idea.difficulty === 'hard' ? 'badge-high' : 'badge-med'}">${idea.difficulty || ''}</span>
+          </div>
+        </div>`;
+      });
+      html += '</div>';
+    }
+
+    html += '</div>';
+    resultsEl.innerHTML = html;
+
+    // Wire copy buttons
+    resultsEl.querySelectorAll('.ai-copy-btn').forEach(btn => {
+      btn.addEventListener('click', () => {
+        navigator.clipboard.writeText(btn.dataset.copy).then(() => toast('Copied to clipboard'));
+      });
+    });
+
+    toast('Content generated');
+  } catch (err) {
+    console.error('Writer error:', err);
+    toast('AI writer unavailable — check your API key and try again', 'error');
+    resultsEl.innerHTML = '';
+  } finally {
+    btn.disabled = false;
+    btn.innerHTML = '<i class="ph ph-sparkle"></i> Generate with AI';
+  }
+});
+
+// ============================================================
 // INITIALIZATION
 // ============================================================
 function init(){

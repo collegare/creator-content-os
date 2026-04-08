@@ -228,6 +228,24 @@
             </div>
           </div>
         </div>
+
+        <!-- AI: What to Post Next -->
+        <div class="card ai-feature-card">
+          <div class="card-header">
+            <div style="display:flex;align-items:center;gap:8px;">
+              <i class="ph ph-sparkle"></i>
+              <h3>What Should I Post Next?</h3>
+              <span class="badge badge-ai">AI</span>
+            </div>
+            <button class="btn btn-primary btn-sm" id="runAISuggestBtn">
+              <i class="ph ph-sparkle"></i> Get AI Suggestions
+            </button>
+          </div>
+          <div class="card-body">
+            <p class="ai-description">AI analyzes your content history, pillar mix, and performance to recommend exactly what to create next.</p>
+            <div id="aiSuggestResults"></div>
+          </div>
+        </div>
       </div>
     </section>
 
@@ -363,6 +381,24 @@
             <button class="btn btn-primary btn-sm" id="saveReviewBtn">Save Review</button>
             <span class="review-saved-msg" id="reviewSavedMsg"></span>
           </div>
+        </div>
+      </div>
+
+      <!-- AI Strategy Review -->
+      <div class="card ai-feature-card">
+        <div class="card-header">
+          <div style="display:flex;align-items:center;gap:8px;">
+            <i class="ph ph-sparkle"></i>
+            <h3>AI Strategy Review</h3>
+            <span class="badge badge-ai">AI-Powered</span>
+          </div>
+          <button class="btn btn-primary btn-sm" id="runAIStrategyBtn">
+            <i class="ph ph-sparkle"></i> Run AI Strategy Review
+          </button>
+        </div>
+        <div class="card-body">
+          <p class="ai-description">Get a comprehensive strategy review powered by AI. Analyzes your content, performance, and monetization data to produce a personalized growth plan.</p>
+          <div id="aiStrategyResults"></div>
         </div>
       </div>
     </section>
@@ -764,6 +800,78 @@
       </div>
 
       <div class="prompts-grid" id="prompts-grid"></div>
+
+      <!-- AI Writer -->
+      <div class="card ai-feature-card" style="margin-top:24px;">
+        <div class="card-header">
+          <div style="display:flex;align-items:center;gap:8px;">
+            <i class="ph ph-sparkle"></i>
+            <h3>AI Writer</h3>
+            <span class="badge badge-ai">AI-Powered</span>
+          </div>
+        </div>
+        <div class="card-body">
+          <p class="ai-description">Generate hooks, captions, video scripts, and content ideas on demand. Powered by AI, personalized to your niche.</p>
+          <div class="ai-writer-controls">
+            <div class="ai-writer-row">
+              <div class="form-group">
+                <label>What do you want?</label>
+                <select id="aiWriterType" class="form-input">
+                  <option value="hooks">Generate Hooks (10 options)</option>
+                  <option value="caption">Write Captions (3 versions)</option>
+                  <option value="script">Write Video Script</option>
+                  <option value="ideas">Generate Content Ideas (10)</option>
+                </select>
+              </div>
+              <div class="form-group">
+                <label>Platform</label>
+                <select id="aiWriterPlatform" class="form-input">
+                  <option value="Instagram">Instagram</option>
+                  <option value="TikTok">TikTok</option>
+                  <option value="YouTube">YouTube</option>
+                  <option value="LinkedIn">LinkedIn</option>
+                  <option value="Twitter">Twitter/X</option>
+                </select>
+              </div>
+            </div>
+            <div class="form-group">
+              <label>Topic / Theme</label>
+              <input type="text" id="aiWriterTopic" class="form-input" placeholder="e.g. 5 mistakes new creators make, morning routine for productivity, how I grew to 10k..." />
+            </div>
+            <div class="ai-writer-row">
+              <div class="form-group">
+                <label>Tone</label>
+                <select id="aiWriterTone" class="form-input">
+                  <option value="conversational">Conversational</option>
+                  <option value="professional">Professional</option>
+                  <option value="casual">Casual/Fun</option>
+                  <option value="inspirational">Inspirational</option>
+                  <option value="educational">Educational</option>
+                  <option value="bold">Bold/Provocative</option>
+                </select>
+              </div>
+              <div class="form-group">
+                <label>Format (for scripts)</label>
+                <select id="aiWriterFormat" class="form-input">
+                  <option value="Reel">Reel / Short</option>
+                  <option value="Carousel">Carousel</option>
+                  <option value="Talking Head">Talking Head</option>
+                  <option value="Voiceover + B-Roll">Voiceover + B-Roll</option>
+                  <option value="Screen Recording">Screen Recording</option>
+                </select>
+              </div>
+            </div>
+            <div class="form-group">
+              <label>Extra context (optional)</label>
+              <input type="text" id="aiWriterContext" class="form-input" placeholder="Any additional details, target audience specifics, or constraints..." />
+            </div>
+            <button class="btn btn-primary" id="runAIWriterBtn">
+              <i class="ph ph-sparkle"></i> Generate with AI
+            </button>
+          </div>
+          <div id="aiWriterResults" style="margin-top:16px;"></div>
+        </div>
+      </div>
     </section>
 
     <!-- ========== SETTINGS ========== -->
