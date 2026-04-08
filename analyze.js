@@ -1,111 +1,59 @@
 /* ============================================================
-   /api/analyze — Claude AI Content Analysis Proxy
-   ============================================================
-   This serverless function proxies requests to Claude's API
-   so the API key never touches the browser.
-
-   SETUP:
-   1. Get a Claude API key from console.anthropic.com
-   2. In Vercel dashboard → Project → Settings → Environment Variables
-   3. Add: ANTHROPIC_API_KEY = sk-ant-...your-key...
+   /api/analyze — AI Content Analysis
+   Analyzes pasted content and returns structured insights
    ============================================================ */
+import { callAI, parseJSON, setCorsHeaders } from './_ai-provider.js';
 
 export default async function handler(req, res) {
-  // CORS headers
-  res.setHeader('Access-Control-Allow-Origin', '*');
-  res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
-  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
-
-  if (req.method === 'OPTIONS') {
-    return res.status(200).end();
-  }
-
-  if (req.method !== 'POST') {
-    return res.status(405).json({ error: 'Method not allowed' });
-  }
-
-  const apiKey = process.env.ANTHROPIC_API_KEY;
-  if (!apiKey) {
-    return res.status(500).json({ error: 'ANTHROPIC_API_KEY not configured. Add it in Vercel Environment Variables.' });
-  }
+  setCorsHeaders(res);
+  if (req.method === 'OPTIONS') return res.status(200).end();
+  if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
 
   try {
     const { content, contentType, niche } = req.body;
+    if (!content) return res.status(400).json({ error: 'Content text is required' });
 
-    if (!content) {
-      return res.status(400).json({ error: 'Content text is required' });
-    }
+    const systemPrompt = `You are an elite content strategy analyst who works with top creators. You analyze content with the precision of a media company strategist and the creative instinct of a viral content creator. Always return valid JSON only — no markdown, no explanation outside the JSON.`;
 
-    const prompt = `You are a content strategy analyst for creators. Analyze the following ${contentType || 'content'} in the ${niche || 'general'} niche.
+    const userPrompt = `Analyze the following ${contentType || 'content'} in the ${niche || 'general'} niche.
 
 Content to analyze:
 """
-${content}
+${content.substring(0, 3000)}
 """
 
-Provide your analysis in this exact JSON structure:
+Return this exact JSON structure:
 {
-  "hook": "Analysis of the opening hook — what works and what could be stronger",
-  "structure": "Breakdown of the content structure and flow",
-  "visual_strategy": "Visual/presentation suggestions",
-  "cta": "Call-to-action analysis and improvement suggestions",
-  "emotional_trigger": "Emotional hooks identified and suggestions",
-  "shareability": "What makes this shareable (or not) and how to improve",
-  "seo_discovery": "SEO and discoverability analysis",
-  "audience_fit": "How well this resonates with the target audience",
-  "originality": "Uniqueness score and differentiation suggestions",
-  "improvement": "Top 3 specific, actionable improvements",
+  "score": 75,
+  "hook": "Analysis of the opening hook — what works and what could be stronger (2-3 sentences)",
+  "structure": "Breakdown of the content structure and flow (2-3 sentences)",
+  "visual_strategy": "Visual/presentation suggestions (2-3 sentences)",
+  "cta": "Call-to-action analysis and improvement suggestions (2-3 sentences)",
+  "emotional_trigger": "Emotional hooks identified and suggestions (2-3 sentences)",
+  "shareability": "What makes this shareable or not, and how to improve (2-3 sentences)",
+  "seo_discovery": "SEO and discoverability analysis (2-3 sentences)",
+  "audience_fit": "How well this resonates with the target audience (2-3 sentences)",
+  "originality": "Uniqueness assessment and differentiation suggestions (2-3 sentences)",
+  "improvement": "Top 3 specific, actionable improvements as a single paragraph",
   "concept": {
     "angle": "A fresh angle to explore with this topic",
-    "hook": "A stronger hook suggestion",
-    "format": "Best format recommendation for this content",
-    "caption": "A sample caption/description",
+    "hook": "A stronger hook suggestion (under 15 words)",
+    "format": "Best format recommendation",
+    "caption": "A sample caption/description (2-3 sentences)",
     "cta": "A compelling CTA suggestion"
-  },
-  "score": 75
-}
+  }
+}`;
 
-Return ONLY valid JSON, no markdown formatting.`;
+    const text = await callAI(systemPrompt, userPrompt);
+    const analysis = parseJSON(text);
 
-    const response = await fetch('https://api.anthropic.com/v1/messages', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'x-api-key': apiKey,
-        'anthropic-version': '2023-06-01'
-      },
-      body: JSON.stringify({
-        model: 'claude-sonnet-4-20250514',
-        max_tokens: 2048,
-        messages: [{ role: 'user', content: prompt }]
-      })
-    });
-
-    if (!response.ok) {
-      const errText = await response.text();
-      return res.status(response.status).json({ error: `Claude API error: ${errText}` });
-    }
-
-    const result = await response.json();
-    const text = result.content?.[0]?.text || '';
-
-    // Parse the JSON from Claude's response
-    let analysis;
-    try {
-      analysis = JSON.parse(text);
-    } catch {
-      // Try to extract JSON from markdown code blocks
-      const jsonMatch = text.match(/```(?:json)?\s*([\s\S]*?)```/);
-      if (jsonMatch) {
-        analysis = JSON.parse(jsonMatch[1].trim());
-      } else {
-        analysis = { raw: text, error: 'Could not parse structured analysis' };
-      }
+    if (!analysis) {
+      return res.status(200).json({ analysis: { raw: text, error: 'Could not parse structured response' } });
     }
 
     return res.status(200).json({ analysis });
   } catch (error) {
     console.error('Analysis error:', error);
-    return res.status(500).json({ error: error.message || 'Internal server error' });
+    return res.status(500).json({ error: error.message });
   }
 }
