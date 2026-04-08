@@ -433,7 +433,16 @@ const DB = {
     return await resp.json();
   },
 
-  // ---- BULK EXPORT / IMPORT ----
+  async syncYouTube(connectionId) {
+    const resp = await fetch('/api/sync/youtube', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ user_id: this._userId })
+    });
+    return await resp.json();
+  },
+
+    // ---- BULK EXPORT / IMPORT ----
   async exportAll() {
     return {
       content: await this.getContent(),
