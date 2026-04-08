@@ -963,16 +963,19 @@
                 <p class="connection-api-note">Requires TikTok Developer Portal app</p>
               </div>
             </div>
-            <div class="connection-card">
+            <div class="connection-card" id="ytConnectionCard">
               <div class="connection-icon" style="background:#fce8e8;color:#c4302b;">
                 <i class="ph ph-youtube-logo"></i>
               </div>
               <div class="connection-info">
                 <strong>YouTube</strong>
                 <p>Sync subscribers, watch hours, video analytics, audience retention</p>
+                <div id="ytConnectionDetail" class="connection-detail" style="display:none;"></div>
               </div>
-              <div class="connection-status">
-                <span class="connection-badge pending">Not Connected</span>
+              <div class="connection-status" id="ytConnectionStatus">
+                <button class="btn btn-primary btn-sm" id="connectYouTubeBtn">
+                  <i class="ph ph-plug"></i> Connect YouTube
+                </button>
                 <p class="connection-api-note">Requires YouTube Data API v3 + OAuth</p>
               </div>
             </div>
