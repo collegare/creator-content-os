@@ -1,9 +1,10 @@
 /* ============================================================
    CREATOR CONTENT OS v2 — Application Script
    Brand: Collegare Studio
-   All client-side. Data persists in localStorage.
-   Includes: Strategy Intelligence Engine, Content Analyzer,
-   Monetization, Quarterly Planning, Chart.js integration
+   Data syncs to Supabase when authenticated, falls back to
+   localStorage in local-only mode.
+   Includes: Auth flow, Strategy Intelligence Engine, Content
+   Analyzer, Monetization, Quarterly Planning, Chart.js
    ============================================================ */
 
 // ---- Storage Keys ----
@@ -17,13 +18,232 @@ const QUARTERLY_KEY = 'ccos_quarterly';
 const MONET_KEY = 'ccos_monetization';
 
 // ---- Data Migration (v1 → v2) ----
-// Silently migrate old keys if present
 ['creatorContentOS_content','creatorContentOS_focus','creatorContentOS_review','creatorContentOS_analyses','creatorContentOS_performance'].forEach((oldKey, i) => {
   const newKeys = [CONTENT_KEY, FOCUS_KEY, REVIEW_KEY, ANALYSES_KEY, PERF_KEY];
   if (localStorage.getItem(oldKey) && !localStorage.getItem(newKeys[i])) {
     localStorage.setItem(newKeys[i], localStorage.getItem(oldKey));
   }
 });
+
+// ============================================================
+// AUTH FLOW
+// ============================================================
+let isAuthenticated = false;
+let currentUser = null;
+
+async function initAuth() {
+  const authScreen = document.getElementById('authScreen');
+  const loginForm = document.getElementById('loginForm');
+  const signupForm = document.getElementById('signupForm');
+  const resetForm = document.getElementById('resetForm');
+
+  // Check if Supabase is configured (key isn't the placeholder)
+  const supabaseConfigured = typeof SUPABASE_ANON_KEY !== 'undefined' && SUPABASE_ANON_KEY !== 'YOUR_ANON_KEY_HERE';
+
+  if (!supabaseConfigured) {
+    // No Supabase configured — skip auth, run in local mode
+    authScreen.classList.add('hidden');
+    showLocalModeBadge();
+    return;
+  }
+
+  // Check for existing session
+  const session = await getSession();
+  if (session?.user) {
+    currentUser = session.user;
+    isAuthenticated = true;
+    await syncFromSupabase();
+    authScreen.classList.add('hidden');
+    showAuthIndicator(session.user.email);
+    return;
+  }
+
+  // Show auth screen
+  authScreen.classList.remove('hidden');
+
+  // Form switching
+  document.getElementById('showSignup').addEventListener('click', () => {
+    loginForm.style.display = 'none'; signupForm.style.display = 'block'; resetForm.style.display = 'none';
+  });
+  document.getElementById('showLogin').addEventListener('click', () => {
+    loginForm.style.display = 'block'; signupForm.style.display = 'none'; resetForm.style.display = 'none';
+  });
+  document.getElementById('showReset').addEventListener('click', () => {
+    loginForm.style.display = 'none'; signupForm.style.display = 'none'; resetForm.style.display = 'block';
+  });
+  document.getElementById('showLoginFromReset').addEventListener('click', () => {
+    loginForm.style.display = 'block'; signupForm.style.display = 'none'; resetForm.style.display = 'none';
+  });
+
+  // Skip auth (local only mode)
+  document.getElementById('skipAuthBtn').addEventListener('click', () => {
+    authScreen.classList.add('hidden');
+    showLocalModeBadge();
+  });
+
+  // Login
+  loginForm.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const email = document.getElementById('loginEmail').value;
+    const password = document.getElementById('loginPassword').value;
+    const errEl = document.getElementById('loginError');
+    errEl.textContent = '';
+    document.getElementById('loginBtn').disabled = true;
+    const { data, error } = await signIn(email, password);
+    document.getElementById('loginBtn').disabled = false;
+    if (error) { errEl.textContent = error.message; return; }
+    currentUser = data.user;
+    isAuthenticated = true;
+    await syncFromSupabase();
+    authScreen.classList.add('hidden');
+    showAuthIndicator(email);
+    init();
+  });
+
+  // Signup
+  signupForm.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const name = document.getElementById('signupName').value;
+    const email = document.getElementById('signupEmail').value;
+    const password = document.getElementById('signupPassword').value;
+    const errEl = document.getElementById('signupError');
+    errEl.textContent = '';
+    document.getElementById('signupBtn').disabled = true;
+    const { data, error } = await signUp(email, password, name);
+    document.getElementById('signupBtn').disabled = false;
+    if (error) { errEl.textContent = error.message; return; }
+    if (data.user && !data.session) {
+      errEl.style.color = '#2d6a4f';
+      errEl.textContent = 'Check your email for a confirmation link, then sign in.';
+      return;
+    }
+    currentUser = data.user;
+    isAuthenticated = true;
+    // Migrate any existing localStorage data to Supabase
+    await migrateLocalToSupabase();
+    authScreen.classList.add('hidden');
+    showAuthIndicator(email);
+    init();
+  });
+
+  // Password reset
+  resetForm.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const email = document.getElementById('resetEmail').value;
+    const errEl = document.getElementById('resetError');
+    const successEl = document.getElementById('resetSuccess');
+    errEl.textContent = ''; successEl.textContent = '';
+    const { error } = await resetPassword(email);
+    if (error) { errEl.textContent = error.message; return; }
+    successEl.textContent = 'Reset link sent! Check your inbox.';
+  });
+
+  // Listen for auth state changes (e.g. email confirmation redirect)
+  supabase.auth.onAuthStateChange(async (event, session) => {
+    if (event === 'SIGNED_IN' && session?.user) {
+      currentUser = session.user;
+      isAuthenticated = true;
+      await syncFromSupabase();
+      authScreen.classList.add('hidden');
+      showAuthIndicator(session.user.email);
+      init();
+    }
+  });
+}
+
+function showAuthIndicator(email) {
+  const tmpl = document.getElementById('authIndicatorTemplate');
+  if (!tmpl) return;
+  const clone = tmpl.content.cloneNode(true);
+  const emailEl = clone.querySelector('#authUserEmail');
+  if (emailEl) emailEl.textContent = email;
+  const signOutBtn = clone.querySelector('#signOutBtn');
+  if (signOutBtn) {
+    signOutBtn.addEventListener('click', async () => {
+      await signOut();
+      isAuthenticated = false;
+      currentUser = null;
+      window.location.reload();
+    });
+  }
+  const sidebar = document.getElementById('sidebar');
+  const footer = sidebar.querySelector('.sidebar-footer-text');
+  if (footer) footer.parentElement.insertBefore(clone, footer);
+  else sidebar.appendChild(clone);
+}
+
+function showLocalModeBadge() {
+  const sidebar = document.getElementById('sidebar');
+  const badge = document.createElement('div');
+  badge.className = 'local-mode-badge';
+  badge.innerHTML = '<i class="ph ph-desktop-tower"></i> <span>Local mode — data saved on this device only</span>';
+  const footer = sidebar.querySelector('.sidebar-footer-text');
+  if (footer) footer.parentElement.insertBefore(badge, footer);
+  else sidebar.appendChild(badge);
+}
+
+// Pull all data from Supabase into localStorage (render cache)
+async function syncFromSupabase() {
+  if (!isAuthenticated) return;
+  try {
+    const content = await DB.getContent();
+    if (content.length) setArr(CONTENT_KEY, content);
+
+    const analyses = await DB.getAnalyses();
+    if (analyses.length) setArr(ANALYSES_KEY, analyses);
+
+    const perf = await DB.getPerformance();
+    if (perf.length) setArr(PERF_KEY, perf);
+
+    const revenue = await DB.getRevenue();
+    if (revenue.length) setArr(MONET_KEY, revenue);
+
+    const profile = await DB.getProfile();
+    if (profile && profile.display_name) {
+      setObj(SETTINGS_KEY, {
+        name: profile.display_name,
+        niche: profile.niche || '',
+        followers: profile.follower_count || 0,
+        platforms: profile.platforms || [],
+        stage: profile.creator_stage || ''
+      });
+    }
+
+    const focus = await DB.getFocus();
+    if (focus) setStr(FOCUS_KEY, focus);
+
+    const review = await DB.getReview();
+    if (review && Object.keys(review).length) setObj(REVIEW_KEY, review);
+  } catch (err) {
+    console.warn('Supabase sync failed, using local data:', err);
+  }
+}
+
+// On signup, push existing localStorage data to Supabase
+async function migrateLocalToSupabase() {
+  if (!isAuthenticated) return;
+  try {
+    const content = getArr(CONTENT_KEY);
+    for (const item of content) { await DB.addContent(item); }
+    const analyses = getArr(ANALYSES_KEY);
+    for (const a of analyses) { await DB.addAnalysis(a); }
+    const perf = getArr(PERF_KEY);
+    for (const p of perf) { await DB.addPerformance(p); }
+    const revenue = getArr(MONET_KEY);
+    for (const r of revenue) { await DB.addRevenue(r); }
+    const settings = getObj(SETTINGS_KEY);
+    if (settings.name) await DB.saveProfile(settings);
+    const focus = getStr(FOCUS_KEY);
+    if (focus) await DB.saveFocus(focus);
+  } catch (err) {
+    console.warn('Migration to Supabase failed:', err);
+  }
+}
+
+// Helper: push a mutation to Supabase in the background
+function syncToCloud(fn) {
+  if (isAuthenticated) { fn().catch(err => console.warn('Cloud sync error:', err)); }
+}
 
 // ============================================================
 // UTILITIES
@@ -175,7 +395,7 @@ function renderWorkflowMini(){$('workflowMiniSteps').innerHTML=WORKFLOW_STEPS.ma
 
 // Focus
 function loadFocus(){const f=getStr(FOCUS_KEY);const ia=document.querySelector('.focus-input-area');const d=$('focusDisplay');const t=$('focusText');if(f){ia.style.display='none';d.style.display='flex';t.textContent=f;}else{ia.style.display='flex';d.style.display='none';}}
-$('saveFocusBtn').addEventListener('click',()=>{const v=$('weeklyFocusInput').value.trim();if(v){setStr(FOCUS_KEY,v);loadFocus();toast('Focus saved');}});
+$('saveFocusBtn').addEventListener('click',()=>{const v=$('weeklyFocusInput').value.trim();if(v){setStr(FOCUS_KEY,v);loadFocus();toast('Focus saved');syncToCloud(()=>DB.saveFocus(v));}});
 $('editFocusBtn').addEventListener('click',()=>{$('weeklyFocusInput').value=getStr(FOCUS_KEY);document.querySelector('.focus-input-area').style.display='flex';$('focusDisplay').style.display='none';});
 $('expandWorkflowBtn')?.addEventListener('click',()=>{/* Could open a modal with full workflow — keeping nav simple */toast('Full workflow details are in the Weekly Workflow section of your Strategy Intelligence tab.');});
 
@@ -247,6 +467,7 @@ contentForm.addEventListener('submit',e=>{
   const entry={id:id||genId(),idea:$('contentIdea').value.trim(),platform:$('contentPlatform').value,pillar:$('contentPillar').value,goal:$('contentGoal').value,format:$('contentFormat').value,status:$('contentStatus').value,contentType:$('contentType').value,filmDate:$('contentFilmDate').value,editDate:$('contentEditDate').value,postDate:$('contentPostDate').value,cta:$('contentCTA').value.trim(),hookStatus:$('contentHookStatus').value,captionStatus:$('contentCaptionStatus').value,repurpose:$('contentRepurpose').value.trim(),review:$('contentReview').value.trim(),takeaway:$('contentTakeaway').value.trim(),createdAt:id?(items.find(i=>i.id===id)?.createdAt||new Date().toISOString()):new Date().toISOString()};
   if(id){const idx=items.findIndex(i=>i.id===id);if(idx!==-1)items[idx]=entry;}else items.push(entry);
   setArr(CONTENT_KEY,items);closeContentModal();renderContentGrid();updateDashboard();toast(id?'Content updated':'Content added');
+  syncToCloud(() => id ? DB.updateContent(id, entry) : DB.addContent(entry));
 });
 window.editContent=function(id){const items=getArr(CONTENT_KEY);const item=items.find(i=>i.id===id);if(item)openContentModal(item);};
 
@@ -259,10 +480,18 @@ $('deleteConfirmBtn').addEventListener('click',()=>{
   if(!deleteTargetId)return;
   const keyMap={content:CONTENT_KEY,analysis:ANALYSES_KEY,perf:PERF_KEY,monet:MONET_KEY};
   const key=keyMap[deleteTargetType]||CONTENT_KEY;
-  let data=getArr(key);data=data.filter(i=>i.id!==deleteTargetId);setArr(key,data);
+  const delId=deleteTargetId, delType=deleteTargetType;
+  let data=getArr(key);data=data.filter(i=>i.id!==delId);setArr(key,data);
   deleteTargetId=null;deleteOverlay.classList.remove('open');
   renderContentGrid();updateDashboard();renderSavedAnalyses();renderPerformance();renderMonetization();
   toast('Item deleted');
+  syncToCloud(() => {
+    if(delType==='content') return DB.deleteContent(delId);
+    if(delType==='analysis') return DB.deleteAnalysis(delId);
+    if(delType==='perf') return DB.deletePerformance(delId);
+    if(delType==='monet') return DB.deleteRevenue(delId);
+    return Promise.resolve();
+  });
 });
 
 // ============================================================
@@ -407,7 +636,7 @@ function renderReviewMini(){
   $('reviewSectionsMini').innerHTML=REVIEW_PROMPTS.map(r=>`<div class="review-mini-card"><h4><i class="ph ${r.icon}"></i> ${r.title}</h4><p>${r.prompt}</p></div>`).join('');
   $('reviewNotes').value=getStr(REVIEW_KEY);
 }
-$('saveReviewBtn').addEventListener('click',()=>{setStr(REVIEW_KEY,$('reviewNotes').value);$('reviewSavedMsg').textContent='Saved';setTimeout(()=>$('reviewSavedMsg').textContent='',2000);toast('Review notes saved');});
+$('saveReviewBtn').addEventListener('click',()=>{const rv=$('reviewNotes').value;setStr(REVIEW_KEY,rv);$('reviewSavedMsg').textContent='Saved';setTimeout(()=>$('reviewSavedMsg').textContent='',2000);toast('Review notes saved');syncToCloud(()=>DB.saveReview({notes:rv}));});
 
 // ============================================================
 // CONTENT ANALYZER (upgraded)
@@ -438,6 +667,76 @@ $('runAnalysisBtn').addEventListener('click',()=>{
   const notes=$('analyzerNotes').value.trim();
 
   if(!link&&!caption){toast('Please provide a link or caption to analyze','error');return;}
+
+  // If we have caption text, try AI analysis first (if API is available)
+  if(caption && caption.length > 20) {
+    const aiBtn = document.createElement('div');
+    aiBtn.className = 'ai-analysis-prompt';
+    aiBtn.style.cssText = 'padding:16px;margin-bottom:16px;background:linear-gradient(135deg,#f3e8e6,#e8f5f5);border-radius:12px;text-align:center;';
+    aiBtn.innerHTML = `<button class="btn btn-primary" id="runAIAnalysis"><i class="ph ph-sparkle"></i> Analyze with AI (Claude)</button><p style="font-size:12px;color:var(--color-text-muted);margin-top:8px;">Uses your Claude API key via secure server proxy</p>`;
+    $('analysisResults').style.display = 'block';
+    $('analysisResults').innerHTML = '';
+    $('analysisResults').appendChild(aiBtn);
+    document.getElementById('runAIAnalysis')?.addEventListener('click', async () => {
+      aiBtn.innerHTML = '<div class="ai-loading"><div class="spinner"></div><p>Analyzing content with Claude AI...</p></div>';
+      try {
+        const resp = await fetch('/api/analyze', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ content: caption, contentType, niche })
+        });
+        const result = await resp.json();
+        if (result.error) { toast(result.error, 'error'); aiBtn.remove(); }
+        else if (result.analysis) {
+          // Auto-fill analysis fields
+          aiBtn.remove();
+          runManualAnalysis();
+          setTimeout(() => {
+            const a = result.analysis;
+            const fields = ['hook','structure','visual_strategy','cta','emotional_trigger','shareability','seo_discovery','audience_fit','originality','improvement'];
+            document.querySelectorAll('[data-analysis-idx]').forEach(ta => {
+              const idx = parseInt(ta.dataset.analysisIdx);
+              const key = fields[idx];
+              if (a[key]) ta.value = a[key];
+            });
+            if (a.concept) {
+              Object.entries(a.concept).forEach(([k, v]) => {
+                const el = document.querySelector(`[data-concept="${k}"]`);
+                if (el) el.value = v;
+              });
+            }
+            toast('AI analysis complete — review and edit the results');
+          }, 100);
+        }
+      } catch (err) {
+        toast('AI analysis unavailable — fill in manually below', 'info');
+        aiBtn.remove();
+        runManualAnalysis();
+      }
+    });
+    // Also show manual option
+    const manualBtn = document.createElement('button');
+    manualBtn.className = 'btn btn-ghost';
+    manualBtn.style.cssText = 'margin-top:12px;display:block;margin-left:auto;margin-right:auto;';
+    manualBtn.innerHTML = '<i class="ph ph-pencil-simple"></i> Skip AI — analyze manually';
+    manualBtn.addEventListener('click', () => { $('analysisResults').innerHTML = ''; runManualAnalysis(); });
+    aiBtn.appendChild(manualBtn);
+    return;
+  }
+  runManualAnalysis();
+});
+
+function runManualAnalysis() {
+  const link=$('analyzerLink').value.trim();
+  const platform=$('analyzerPlatform').value;
+  const contentType=$('analyzerContentType').value;
+  const niche=$('analyzerNiche').value.trim();
+  const caption=$('analyzerCaption').value.trim();
+  const views=$('analyzerViews').value.trim();
+  const likes=$('analyzerLikes').value.trim();
+  const comments=$('analyzerComments').value.trim();
+  const saves=$('analyzerSaves').value.trim();
+  const notes=$('analyzerNotes').value.trim();
 
   const results=$('analysisResults');
   results.style.display='block';
@@ -484,12 +783,14 @@ $('runAnalysisBtn').addEventListener('click',()=>{
     document.querySelectorAll('[data-analysis-idx]').forEach(ta=>{analysisNotes[ta.dataset.analysisIdx]=ta.value.trim();});
     const concept={};
     document.querySelectorAll('[data-concept]').forEach(el=>{concept[el.dataset.concept]=(el.value||'').trim();});
-    analyses.push({id:genId(),link,platform,contentType,niche,caption:caption.substring(0,300),views,likes,comments,saves,notes,analysisNotes,concept,date:new Date().toISOString()});
+    const newAnalysis={id:genId(),link,platform,contentType,niche,caption:caption.substring(0,300),views,likes,comments,saves,notes,analysisNotes,concept,date:new Date().toISOString()};
+    analyses.push(newAnalysis);
     setArr(ANALYSES_KEY,analyses);renderSavedAnalyses();toast('Analysis saved');
+    syncToCloud(()=>DB.addAnalysis({type:contentType,niche,metrics:{views,likes,comments,saves},categories:analysisNotes,concept}));
   });
 
   results.scrollIntoView({behavior:'smooth',block:'start'});
-});
+}
 
 function renderSavedAnalyses(){
   const analyses=getArr(ANALYSES_KEY);const c=$('savedAnalyses'), e=$('analyses-empty');
@@ -564,10 +865,12 @@ function renderPerfHistory(data){
 $('savePerfBtn').addEventListener('click',()=>{
   const week=$('perfWeek').value;if(!week){toast('Please select a week date','error');return;}
   const data=getArr(PERF_KEY);
-  data.push({id:genId(),platform:$('perfPlatform').value,week,followers:$('perfFollowers').value.trim(),views:$('perfViews').value.trim(),likes:$('perfLikes').value.trim(),comments:$('perfComments').value.trim(),saves:$('perfSaves').value.trim(),shares:$('perfShares').value.trim(),watchTime:$('perfWatchTime').value.trim(),topPost:$('perfTopPost').value.trim(),notes:$('perfNotes').value.trim(),date:new Date().toISOString()});
+  const perfEntry={id:genId(),platform:$('perfPlatform').value,week,followers:$('perfFollowers').value.trim(),views:$('perfViews').value.trim(),likes:$('perfLikes').value.trim(),comments:$('perfComments').value.trim(),saves:$('perfSaves').value.trim(),shares:$('perfShares').value.trim(),watchTime:$('perfWatchTime').value.trim(),topPost:$('perfTopPost').value.trim(),notes:$('perfNotes').value.trim(),date:new Date().toISOString()};
+  data.push(perfEntry);
   setArr(PERF_KEY,data);
   ['perfFollowers','perfViews','perfLikes','perfComments','perfSaves','perfShares','perfWatchTime','perfTopPost','perfNotes'].forEach(id=>$(id).value='');
   renderPerformance();updateDashboard();toast('Stats saved');
+  syncToCloud(()=>DB.addPerformance(perfEntry));
 });
 
 // ============================================================
@@ -623,9 +926,11 @@ function renderMonetHistory(){
 $('saveMonetBtn').addEventListener('click',()=>{
   const amount=$('monetAmount').value.trim();if(!amount){toast('Please enter an amount','error');return;}
   const data=getArr(MONET_KEY);
-  data.push({id:genId(),month:$('monetMonth').value,stream:$('monetStream').value,amount,notes:$('monetNotes').value.trim(),date:new Date().toISOString()});
+  const monetEntry={id:genId(),month:$('monetMonth').value,stream:$('monetStream').value,amount,notes:$('monetNotes').value.trim(),date:new Date().toISOString()};
+  data.push(monetEntry);
   setArr(MONET_KEY,data);$('monetAmount').value='';$('monetNotes').value='';
   renderMonetHistory();toast('Revenue logged');
+  syncToCloud(()=>DB.addRevenue(monetEntry));
 });
 
 function renderMonetRoadmap(stage){
@@ -661,6 +966,7 @@ $('saveQuarterlyBtn').addEventListener('click',()=>{
   const data={};
   ['qGrowth','qContent','qBrand','qMonetization','qOffers','qPlatforms','qCampaigns','qMetrics','qActions'].forEach(id=>{data[id]=$(id).value;});
   setObj(QUARTERLY_KEY,data);toast('Quarterly plan saved');
+  syncToCloud(()=>{const now=new Date();const q='Q'+Math.ceil((now.getMonth()+1)/3);return DB.saveQuarterlyPlan(q,now.getFullYear(),data);});
 });
 
 // ============================================================
@@ -705,8 +1011,10 @@ function loadSettings(){
   if(s.goals)$('settingsGoals').value=s.goals;
 }
 $('saveSettingsBtn').addEventListener('click',()=>{
-  setObj(SETTINGS_KEY,{name:$('settingsName').value.trim(),niche:$('settingsNiche').value.trim(),platform:$('settingsPlatform').value,stage:$('settingsStage').value,goals:$('settingsGoals').value.trim()});
+  const settingsData={name:$('settingsName').value.trim(),niche:$('settingsNiche').value.trim(),platform:$('settingsPlatform').value,stage:$('settingsStage').value,goals:$('settingsGoals').value.trim()};
+  setObj(SETTINGS_KEY,settingsData);
   toast('Profile saved');
+  syncToCloud(()=>DB.saveProfile(settingsData));
 });
 
 // Data export/import
@@ -751,5 +1059,10 @@ function init(){
   renderPerformance();
 }
 
-document.addEventListener('DOMContentLoaded',init);
-if(document.readyState!=='loading')init();
+async function boot() {
+  await initAuth();
+  init();
+}
+
+document.addEventListener('DOMContentLoaded', boot);
+if(document.readyState!=='loading') boot();
