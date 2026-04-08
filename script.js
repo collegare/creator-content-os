@@ -1485,9 +1485,40 @@ function initPlatformConnections() {
     });
   }
 
+  // ── YouTube OAuth callback handling ──
+  if (params.get('yt_connected') === 'true') {
+    const username = params.get('yt_username');
+    const claimToken = params.get('yt_claim');
+    toast(`YouTube connected${username ? ': ' + username : ''}!`);
+
+    if (claimToken && DB.isAuthenticated()) {
+      DB.claimConnection(claimToken).then(() => { renderYouTubeConnection(); });
+    } else if (claimToken) {
+      localStorage.setItem('ccos_yt_claim', claimToken);
+    }
+
+    localStorage.setItem('ccos_yt_connected', 'true');
+    localStorage.setItem('ccos_yt_username', username || '');
+    window.history.replaceState({}, '', window.location.pathname);
+  }
+
+  if (params.get('yt_error')) {
+    toast('YouTube connection failed: ' + decodeURIComponent(params.get('yt_error')), 'error');
+    window.history.replaceState({}, '', window.location.pathname);
+  }
+
+  // Wire YouTube connect button
+  const connectYTBtn = $('connectYouTubeBtn');
+  if (connectYTBtn) {
+    connectYTBtn.addEventListener('click', () => {
+      window.location.href = '/api/auth/youtube?returnTo=/';
+    });
+  }
+
   // Render current connection states
   renderInstagramConnection();
   renderTikTokConnection();
+  renderYouTubeConnection();
 }
 
 // ── TikTok Connection UI ──
@@ -1760,6 +1791,131 @@ async function renderInstagramConnection() {
     // Re-wire button
     $('connectInstagramBtn')?.addEventListener('click', () => {
       window.location.href = '/api/auth/instagram?returnTo=/';
+    });
+  }
+}
+
+// ── YouTube Connection UI ──
+async function renderYouTubeConnection() {
+  const statusEl = $('ytConnectionStatus');
+  const detailEl = $('ytConnectionDetail');
+  if (!statusEl) return;
+
+  const isConnected = localStorage.getItem('ccos_yt_connected') === 'true';
+  const username = localStorage.getItem('ccos_yt_username');
+
+  let connection = null;
+  if (DB.isAuthenticated()) {
+    try {
+      const connections = await DB.getConnections();
+      connection = connections.find(c => c.platform === 'youtube' && c.status === 'active');
+    } catch (e) { console.log('Could not fetch YT connections:', e); }
+
+    const pendingClaim = localStorage.getItem('ccos_yt_claim');
+    if (pendingClaim) {
+      await DB.claimConnection(pendingClaim);
+      localStorage.removeItem('ccos_yt_claim');
+      const connections = await DB.getConnections();
+      connection = connections.find(c => c.platform === 'youtube' && c.status === 'active');
+    }
+  }
+
+  if (connection || isConnected) {
+    const displayName = connection?.platform_username || username || 'Connected';
+    const lastSynced = connection?.last_synced_at
+      ? new Date(connection.last_synced_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' })
+      : 'Never';
+
+    statusEl.innerHTML = `
+      <span class="connection-badge connected"><i class="ph ph-check-circle"></i> Connected</span>
+      <div class="connection-actions">
+        <button class="btn btn-primary btn-sm" id="syncYouTubeBtn">
+          <i class="ph ph-arrows-clockwise"></i> Sync Now
+        </button>
+        <button class="btn btn-ghost btn-sm" id="disconnectYouTubeBtn">
+          <i class="ph ph-plug"></i> Disconnect
+        </button>
+      </div>
+    `;
+
+    if (detailEl) {
+      detailEl.style.display = 'block';
+      detailEl.innerHTML = `
+        <span class="connection-username">${displayName}</span>
+        <span class="connection-meta">Last synced: ${lastSynced}</span>
+      `;
+    }
+
+    $('syncYouTubeBtn')?.addEventListener('click', async () => {
+      const btn = $('syncYouTubeBtn');
+      btn.disabled = true;
+      btn.innerHTML = '<div class="spinner-sm"></div> Syncing...';
+      try {
+        const result = await DB.syncYouTube(connection?.id);
+        if (result.error) {
+          toast(result.error, 'error');
+        } else {
+          toast(`Synced ${result.totalPosts || 0} videos from YouTube`);
+          if (result.posts?.length) {
+            const content = getArr(CONTENT_KEY);
+            let added = 0;
+            result.posts.forEach(post => {
+              if (!content.find(c => c.link === post.permalink)) {
+                content.push({
+                  id: genId(),
+                  idea: (post.title || 'YouTube Video').substring(0, 100),
+                  platform: 'YouTube',
+                  format: post.format || 'Video',
+                  status: 'Published',
+                  link: post.permalink,
+                  pillar: '',
+                  postDate: post.timestamp?.split('T')[0] || '',
+                  notes: `Views: ${post.views} | Likes: ${post.likes} | Comments: ${post.comments}`,
+                  synced: true
+                });
+                added++;
+              }
+            });
+            if (added > 0) {
+              setArr(CONTENT_KEY, content);
+              renderContentGrid();
+              updateDashboard();
+              toast(`Added ${added} new videos to your content library`);
+            }
+          }
+          if (result.profile) {
+            localStorage.setItem('ccos_yt_profile', JSON.stringify(result.profile));
+          }
+          renderYouTubeConnection();
+        }
+      } catch (err) {
+        toast('Sync failed: ' + err.message, 'error');
+      } finally {
+        btn.disabled = false;
+        btn.innerHTML = '<i class="ph ph-arrows-clockwise"></i> Sync Now';
+      }
+    });
+
+    $('disconnectYouTubeBtn')?.addEventListener('click', async () => {
+      if (!confirm('Disconnect YouTube? Your synced data will remain.')) return;
+      if (connection) await DB.disconnectPlatform(connection.id);
+      localStorage.removeItem('ccos_yt_connected');
+      localStorage.removeItem('ccos_yt_username');
+      localStorage.removeItem('ccos_yt_profile');
+      toast('YouTube disconnected');
+      renderYouTubeConnection();
+    });
+
+  } else {
+    statusEl.innerHTML = `
+      <button class="btn btn-primary btn-sm" id="connectYouTubeBtn">
+        <i class="ph ph-plug"></i> Connect YouTube
+      </button>
+      <p class="connection-api-note">Requires YouTube Data API v3 + OAuth</p>
+    `;
+    if (detailEl) { detailEl.style.display = 'none'; detailEl.innerHTML = ''; }
+    $('connectYouTubeBtn')?.addEventListener('click', () => {
+      window.location.href = '/api/auth/youtube?returnTo=/';
     });
   }
 }
