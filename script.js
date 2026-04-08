@@ -1455,8 +1455,167 @@ function initPlatformConnections() {
     });
   }
 
-  // Render current connection state
+  // ── TikTok OAuth callback handling ──
+  if (params.get('tt_connected') === 'true') {
+    const username = params.get('tt_username');
+    const claimToken = params.get('tt_claim');
+    toast(`TikTok connected${username ? ': @' + username : ''}!`);
+
+    if (claimToken && DB.isAuthenticated()) {
+      DB.claimConnection(claimToken).then(() => { renderTikTokConnection(); });
+    } else if (claimToken) {
+      localStorage.setItem('ccos_tt_claim', claimToken);
+    }
+
+    localStorage.setItem('ccos_tt_connected', 'true');
+    localStorage.setItem('ccos_tt_username', username || '');
+    window.history.replaceState({}, '', window.location.pathname);
+  }
+
+  if (params.get('tt_error')) {
+    toast('TikTok connection failed: ' + decodeURIComponent(params.get('tt_error')), 'error');
+    window.history.replaceState({}, '', window.location.pathname);
+  }
+
+  // Wire TikTok connect button
+  const connectTTBtn = $('connectTikTokBtn');
+  if (connectTTBtn) {
+    connectTTBtn.addEventListener('click', () => {
+      window.location.href = '/api/auth/tiktok?returnTo=/';
+    });
+  }
+
+  // Render current connection states
   renderInstagramConnection();
+  renderTikTokConnection();
+}
+
+// ── TikTok Connection UI ──
+async function renderTikTokConnection() {
+  const statusEl = $('ttConnectionStatus');
+  const detailEl = $('ttConnectionDetail');
+  if (!statusEl) return;
+
+  const isConnected = localStorage.getItem('ccos_tt_connected') === 'true';
+  const username = localStorage.getItem('ccos_tt_username');
+
+  let connection = null;
+  if (DB.isAuthenticated()) {
+    try {
+      const connections = await DB.getConnections();
+      connection = connections.find(c => c.platform === 'tiktok' && c.status === 'active');
+    } catch (e) { console.log('Could not fetch TT connections:', e); }
+
+    const pendingClaim = localStorage.getItem('ccos_tt_claim');
+    if (pendingClaim) {
+      await DB.claimConnection(pendingClaim);
+      localStorage.removeItem('ccos_tt_claim');
+      const connections = await DB.getConnections();
+      connection = connections.find(c => c.platform === 'tiktok' && c.status === 'active');
+    }
+  }
+
+  if (connection || isConnected) {
+    const displayName = connection?.platform_username || username || 'Connected';
+    const lastSynced = connection?.last_synced_at
+      ? new Date(connection.last_synced_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' })
+      : 'Never';
+
+    statusEl.innerHTML = `
+      <span class="connection-badge connected"><i class="ph ph-check-circle"></i> Connected</span>
+      <div class="connection-actions">
+        <button class="btn btn-primary btn-sm" id="syncTikTokBtn">
+          <i class="ph ph-arrows-clockwise"></i> Sync Now
+        </button>
+        <button class="btn btn-ghost btn-sm" id="disconnectTikTokBtn">
+          <i class="ph ph-plug"></i> Disconnect
+        </button>
+      </div>
+    `;
+
+    if (detailEl) {
+      detailEl.style.display = 'block';
+      detailEl.innerHTML = `
+        <span class="connection-username">@${displayName}</span>
+        <span class="connection-meta">Last synced: ${lastSynced}</span>
+      `;
+    }
+
+    // Wire sync
+    $('syncTikTokBtn')?.addEventListener('click', async () => {
+      const btn = $('syncTikTokBtn');
+      btn.disabled = true;
+      btn.innerHTML = '<div class="spinner-sm"></div> Syncing...';
+
+      try {
+        const result = await DB.syncTikTok(connection?.id);
+        if (result.error) {
+          toast(result.error, 'error');
+        } else {
+          toast(`Synced ${result.totalPosts || 0} videos from TikTok`);
+          if (result.posts?.length) {
+            const content = getArr(CONTENT_KEY);
+            let added = 0;
+            result.posts.forEach(post => {
+              if (!content.find(c => c.link === post.permalink)) {
+                content.push({
+                  id: genId(),
+                  idea: (post.title || 'TikTok Video').substring(0, 100),
+                  platform: 'TikTok',
+                  format: 'Video',
+                  status: 'Published',
+                  link: post.permalink,
+                  pillar: '',
+                  postDate: post.timestamp?.split('T')[0] || '',
+                  notes: `Views: ${post.views} | Likes: ${post.likes} | Comments: ${post.comments} | Shares: ${post.shares}`,
+                  synced: true
+                });
+                added++;
+              }
+            });
+            if (added > 0) {
+              setArr(CONTENT_KEY, content);
+              renderContentGrid();
+              updateDashboard();
+              toast(`Added ${added} new videos to your content library`);
+            }
+          }
+          if (result.profile) {
+            localStorage.setItem('ccos_tt_profile', JSON.stringify(result.profile));
+          }
+          renderTikTokConnection();
+        }
+      } catch (err) {
+        toast('Sync failed: ' + err.message, 'error');
+      } finally {
+        btn.disabled = false;
+        btn.innerHTML = '<i class="ph ph-arrows-clockwise"></i> Sync Now';
+      }
+    });
+
+    // Wire disconnect
+    $('disconnectTikTokBtn')?.addEventListener('click', async () => {
+      if (!confirm('Disconnect TikTok? Your synced data will remain.')) return;
+      if (connection) await DB.disconnectPlatform(connection.id);
+      localStorage.removeItem('ccos_tt_connected');
+      localStorage.removeItem('ccos_tt_username');
+      localStorage.removeItem('ccos_tt_profile');
+      toast('TikTok disconnected');
+      renderTikTokConnection();
+    });
+
+  } else {
+    statusEl.innerHTML = `
+      <button class="btn btn-primary btn-sm" id="connectTikTokBtn">
+        <i class="ph ph-plug"></i> Connect TikTok
+      </button>
+      <p class="connection-api-note">Requires TikTok Developer Portal app</p>
+    `;
+    if (detailEl) { detailEl.style.display = 'none'; detailEl.innerHTML = ''; }
+    $('connectTikTokBtn')?.addEventListener('click', () => {
+      window.location.href = '/api/auth/tiktok?returnTo=/';
+    });
+  }
 }
 
 async function renderInstagramConnection() {

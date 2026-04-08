@@ -1,12 +1,14 @@
 -- ============================================================
--- MIGRATION: Instagram Integration
+-- MIGRATION: Social Platform Integration (Instagram + TikTok)
 -- Run this in Supabase SQL Editor to add columns needed for
--- Instagram OAuth and content sync.
+-- OAuth connections and content sync.
 -- ============================================================
 
 -- Add new columns to platform_connections for OAuth tokens
 ALTER TABLE platform_connections
   ADD COLUMN IF NOT EXISTS page_access_token TEXT,
+  ADD COLUMN IF NOT EXISTS refresh_token TEXT,
+  ADD COLUMN IF NOT EXISTS refresh_token_expires_at TIMESTAMPTZ,
   ADD COLUMN IF NOT EXISTS claim_token TEXT,
   ADD COLUMN IF NOT EXISTS last_synced_at TIMESTAMPTZ;
 
