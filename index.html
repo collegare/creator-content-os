@@ -928,34 +928,39 @@
         <div class="card-header">
           <i class="ph ph-plug"></i>
           <h3>Platform Connections</h3>
-          <span class="badge badge-coming">Coming in V3</span>
         </div>
         <div class="card-body">
           <div class="connections-grid" id="connectionsGrid">
-            <div class="connection-card">
+            <div class="connection-card" id="igConnectionCard">
               <div class="connection-icon" style="background:#f3e8f5;color:#8b3baf;">
                 <i class="ph ph-instagram-logo"></i>
               </div>
               <div class="connection-info">
                 <strong>Instagram</strong>
                 <p>Sync followers, engagement, post performance, audience insights</p>
+                <div id="igConnectionDetail" class="connection-detail" style="display:none;"></div>
               </div>
-              <div class="connection-status">
-                <span class="connection-badge pending">Not Connected</span>
-                <p class="connection-api-note">Requires Instagram Graph API + Meta Business account</p>
+              <div class="connection-status" id="igConnectionStatus">
+                <button class="btn btn-primary btn-sm" id="connectInstagramBtn">
+                  <i class="ph ph-plug"></i> Connect Instagram
+                </button>
+                <p class="connection-api-note">Requires Instagram Business/Creator account</p>
               </div>
             </div>
-            <div class="connection-card">
+            <div class="connection-card" id="ttConnectionCard">
               <div class="connection-icon" style="background:#e8f5f5;color:#000;">
                 <i class="ph ph-tiktok-logo"></i>
               </div>
               <div class="connection-info">
                 <strong>TikTok</strong>
                 <p>Sync video views, followers, watch time, trending content data</p>
+                <div id="ttConnectionDetail" class="connection-detail" style="display:none;"></div>
               </div>
-              <div class="connection-status">
-                <span class="connection-badge pending">Not Connected</span>
-                <p class="connection-api-note">Requires TikTok Content Posting API access</p>
+              <div class="connection-status" id="ttConnectionStatus">
+                <button class="btn btn-primary btn-sm" id="connectTikTokBtn">
+                  <i class="ph ph-plug"></i> Connect TikTok
+                </button>
+                <p class="connection-api-note">Requires TikTok Developer Portal app</p>
               </div>
             </div>
             <div class="connection-card">

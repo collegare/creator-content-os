@@ -654,7 +654,7 @@ const ANALYSIS_CATS=[
   {title:'Adapt Without Copying',icon:'ph-arrows-split',color:'var(--color-accent-teal)',bg:'var(--color-accent-teal-bg)',placeholder:'Extract the structure and strategy, not the words. How would you apply this approach in your own niche and voice?'},
 ];
 
-$('runAnalysisBtn').addEventListener('click',()=>{
+$('runAnalysisBtn').addEventListener('click', async ()=>{
   const link=$('analyzerLink').value.trim();
   const platform=$('analyzerPlatform').value;
   const contentType=$('analyzerContentType').value;
@@ -668,61 +668,122 @@ $('runAnalysisBtn').addEventListener('click',()=>{
 
   if(!link&&!caption){toast('Please provide a link or caption to analyze','error');return;}
 
-  // If we have caption text, try AI analysis first (if API is available)
-  if(caption && caption.length > 20) {
-    const aiBtn = document.createElement('div');
-    aiBtn.className = 'ai-analysis-prompt';
-    aiBtn.style.cssText = 'padding:16px;margin-bottom:16px;background:linear-gradient(135deg,#f3e8e6,#e8f5f5);border-radius:12px;text-align:center;';
-    aiBtn.innerHTML = `<button class="btn btn-primary" id="runAIAnalysis"><i class="ph ph-sparkle"></i> Analyze with AI (Claude)</button><p style="font-size:12px;color:var(--color-text-muted);margin-top:8px;">Uses your Claude API key via secure server proxy</p>`;
-    $('analysisResults').style.display = 'block';
-    $('analysisResults').innerHTML = '';
-    $('analysisResults').appendChild(aiBtn);
-    document.getElementById('runAIAnalysis')?.addEventListener('click', async () => {
-      aiBtn.innerHTML = '<div class="ai-loading"><div class="spinner"></div><p>Analyzing content with Claude AI...</p></div>';
-      try {
-        const resp = await fetch('/api/analyze', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ content: caption, contentType, niche })
-        });
-        const result = await resp.json();
-        if (result.error) { toast(result.error, 'error'); aiBtn.remove(); }
-        else if (result.analysis) {
-          // Auto-fill analysis fields
-          aiBtn.remove();
-          runManualAnalysis();
-          setTimeout(() => {
-            const a = result.analysis;
-            const fields = ['hook','structure','visual_strategy','cta','emotional_trigger','shareability','seo_discovery','audience_fit','originality','improvement'];
-            document.querySelectorAll('[data-analysis-idx]').forEach(ta => {
-              const idx = parseInt(ta.dataset.analysisIdx);
-              const key = fields[idx];
-              if (a[key]) ta.value = a[key];
-            });
-            if (a.concept) {
-              Object.entries(a.concept).forEach(([k, v]) => {
-                const el = document.querySelector(`[data-concept="${k}"]`);
-                if (el) el.value = v;
-              });
-            }
-            toast('AI analysis complete — review and edit the results');
-          }, 100);
+  // ── AI-FIRST FLOW ──
+  // Always try AI analysis first (with link OR caption). Falls back to manual if AI unavailable.
+  const results = $('analysisResults');
+  results.style.display = 'block';
+  results.innerHTML = '';
+
+  // Show loading with progress steps
+  const loadingEl = document.createElement('div');
+  loadingEl.className = 'ai-analysis-prompt';
+  loadingEl.style.cssText = 'padding:24px;margin-bottom:16px;background:linear-gradient(135deg,#f3e8e6,#e8f5f5);border-radius:12px;text-align:center;';
+  results.appendChild(loadingEl);
+
+  // Step 1: If we have a link, try to fetch metadata first
+  let postMetadata = null;
+  if (link) {
+    loadingEl.innerHTML = '<div class="ai-loading"><div class="spinner"></div><p><strong>Step 1/2:</strong> Fetching post data from link...</p></div>';
+    try {
+      const metaResp = await fetch('/api/fetch-post', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ url: link })
+      });
+      const metaData = await metaResp.json();
+      if (metaData.metadata && !metaData.metadata.error) {
+        postMetadata = metaData.metadata;
+        // If we got a caption from the post and user didn't paste one, use it
+        if (postMetadata.caption && !caption) {
+          $('analyzerCaption').value = postMetadata.caption;
         }
-      } catch (err) {
-        toast('AI analysis unavailable — fill in manually below', 'info');
-        aiBtn.remove();
-        runManualAnalysis();
+        // Show what we found
+        let foundItems = [];
+        if (postMetadata.author) foundItems.push(`Creator: ${postMetadata.author}`);
+        if (postMetadata.title) foundItems.push(`Title: ${postMetadata.title}`);
+        if (postMetadata.caption) foundItems.push('Caption extracted');
+        if (postMetadata.description) foundItems.push('Description found');
+        if (foundItems.length) {
+          loadingEl.innerHTML = `<div class="ai-loading"><div class="spinner"></div><p><strong>Step 1/2:</strong> Found: ${foundItems.join(' · ')}</p><p style="margin-top:8px;font-size:12px;color:var(--color-text-muted);">Sending to AI for deep analysis...</p></div>`;
+        }
       }
-    });
-    // Also show manual option
-    const manualBtn = document.createElement('button');
-    manualBtn.className = 'btn btn-ghost';
-    manualBtn.style.cssText = 'margin-top:12px;display:block;margin-left:auto;margin-right:auto;';
-    manualBtn.innerHTML = '<i class="ph ph-pencil-simple"></i> Skip AI — analyze manually';
-    manualBtn.addEventListener('click', () => { $('analysisResults').innerHTML = ''; runManualAnalysis(); });
-    aiBtn.appendChild(manualBtn);
-    return;
+    } catch (e) {
+      // Metadata fetch failed — that's okay, continue with what we have
+      console.log('Metadata fetch failed:', e);
+    }
   }
+
+  // Step 2: Run AI analysis with everything we have
+  loadingEl.innerHTML = `<div class="ai-loading"><div class="spinner"></div><p><strong>${link ? 'Step 2/2' : 'Analyzing'}:</strong> Running deep AI content analysis...</p><p style="margin-top:8px;font-size:12px;color:var(--color-text-muted);">Claude is analyzing your content across 10 strategic dimensions</p></div>`;
+
+  // Also show manual skip option during loading
+  const skipBtn = document.createElement('button');
+  skipBtn.className = 'btn btn-ghost';
+  skipBtn.style.cssText = 'margin-top:16px;display:block;margin-left:auto;margin-right:auto;font-size:12px;';
+  skipBtn.innerHTML = '<i class="ph ph-pencil-simple"></i> Skip AI — analyze manually instead';
+  skipBtn.addEventListener('click', () => { results.innerHTML = ''; runManualAnalysis(); });
+  loadingEl.appendChild(skipBtn);
+
+  try {
+    const analyzePayload = {
+      content: caption || postMetadata?.caption || postMetadata?.description || '',
+      contentType,
+      niche,
+      link,
+      platform,
+      metadata: postMetadata,
+      views, likes, comments, saves
+    };
+
+    const resp = await fetch('/api/analyze', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(analyzePayload)
+    });
+    const result = await resp.json();
+
+    if (result.error) {
+      toast(result.error, 'error');
+      loadingEl.remove();
+      runManualAnalysis();
+      return;
+    }
+
+    if (result.analysis) {
+      // Success — render the analysis cards and auto-fill with AI results
+      loadingEl.remove();
+      runManualAnalysis();
+      setTimeout(() => {
+        const a = result.analysis;
+        const fields = ['hook','structure','visual_strategy','cta','emotional_trigger','shareability','seo_discovery','audience_fit','originality','improvement'];
+        document.querySelectorAll('[data-analysis-idx]').forEach(ta => {
+          const idx = parseInt(ta.dataset.analysisIdx);
+          const key = fields[idx];
+          if (a[key]) ta.value = a[key];
+        });
+        if (a.concept) {
+          Object.entries(a.concept).forEach(([k, v]) => {
+            const el = document.querySelector(`[data-concept="${k}"]`);
+            if (el) el.value = v;
+          });
+        }
+        // Show AI badge on the results
+        const aiBadge = document.createElement('div');
+        aiBadge.style.cssText = 'text-align:center;padding:8px;margin-bottom:12px;';
+        aiBadge.innerHTML = '<span class="badge badge-ai" style="font-size:11px;padding:4px 12px;">AI-Generated Analysis</span><span style="font-size:12px;color:var(--color-text-muted);margin-left:8px;">Review and edit any field below</span>';
+        results.insertBefore(aiBadge, results.firstChild);
+        toast('AI analysis complete — review and edit the results below');
+        results.scrollIntoView({behavior:'smooth',block:'start'});
+      }, 100);
+      return;
+    }
+  } catch (err) {
+    console.log('AI analysis error:', err);
+    toast('AI unavailable — switching to manual analysis', 'info');
+  }
+
+  // Fallback to manual
+  loadingEl.remove();
   runManualAnalysis();
 });
 
@@ -1351,6 +1412,200 @@ $('runAIWriterBtn').addEventListener('click', async () => {
 });
 
 // ============================================================
+// PLATFORM CONNECTIONS (Instagram OAuth + Sync)
+// ============================================================
+function initPlatformConnections() {
+  // Check URL params for OAuth callback results
+  const params = new URLSearchParams(window.location.search);
+
+  if (params.get('ig_connected') === 'true') {
+    const username = params.get('ig_username');
+    const claimToken = params.get('ig_claim');
+    toast(`Instagram connected${username ? ': @' + username : ''}!`);
+
+    // Claim the connection for the current user
+    if (claimToken && DB.isAuthenticated()) {
+      DB.claimConnection(claimToken).then(() => {
+        renderInstagramConnection();
+      });
+    } else if (claimToken) {
+      // Store claim token in localStorage for when user logs in
+      localStorage.setItem('ccos_ig_claim', claimToken);
+    }
+
+    // Also store locally for display
+    localStorage.setItem('ccos_ig_connected', 'true');
+    localStorage.setItem('ccos_ig_username', username || '');
+
+    // Clean URL
+    window.history.replaceState({}, '', window.location.pathname);
+  }
+
+  if (params.get('ig_error')) {
+    toast('Instagram connection failed: ' + decodeURIComponent(params.get('ig_error')), 'error');
+    window.history.replaceState({}, '', window.location.pathname);
+  }
+
+  // Wire connect button
+  const connectBtn = $('connectInstagramBtn');
+  if (connectBtn) {
+    connectBtn.addEventListener('click', () => {
+      // Redirect to OAuth initiation endpoint
+      window.location.href = '/api/auth/instagram?returnTo=/';
+    });
+  }
+
+  // Render current connection state
+  renderInstagramConnection();
+}
+
+async function renderInstagramConnection() {
+  const statusEl = $('igConnectionStatus');
+  const detailEl = $('igConnectionDetail');
+  if (!statusEl) return;
+
+  const isConnected = localStorage.getItem('ccos_ig_connected') === 'true';
+  const username = localStorage.getItem('ccos_ig_username');
+
+  // If authenticated, check Supabase for real connection
+  let connection = null;
+  if (DB.isAuthenticated()) {
+    try {
+      const connections = await DB.getConnections();
+      connection = connections.find(c => c.platform === 'instagram' && c.status === 'active');
+    } catch (e) {
+      console.log('Could not fetch connections:', e);
+    }
+
+    // Also try to claim any pending connection
+    const pendingClaim = localStorage.getItem('ccos_ig_claim');
+    if (pendingClaim) {
+      await DB.claimConnection(pendingClaim);
+      localStorage.removeItem('ccos_ig_claim');
+      const connections = await DB.getConnections();
+      connection = connections.find(c => c.platform === 'instagram' && c.status === 'active');
+    }
+  }
+
+  if (connection || isConnected) {
+    const displayName = connection?.platform_username || username || 'Connected';
+    const lastSynced = connection?.last_synced_at
+      ? new Date(connection.last_synced_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' })
+      : 'Never';
+    const expiresAt = connection?.token_expires_at
+      ? new Date(connection.token_expires_at)
+      : null;
+    const isExpiring = expiresAt && (expiresAt - Date.now()) < 7 * 24 * 60 * 60 * 1000; // 7 days
+
+    statusEl.innerHTML = `
+      <span class="connection-badge connected"><i class="ph ph-check-circle"></i> Connected</span>
+      <div class="connection-actions">
+        <button class="btn btn-primary btn-sm" id="syncInstagramBtn">
+          <i class="ph ph-arrows-clockwise"></i> Sync Now
+        </button>
+        <button class="btn btn-ghost btn-sm" id="disconnectInstagramBtn">
+          <i class="ph ph-plug"></i> Disconnect
+        </button>
+      </div>
+      ${isExpiring ? '<p class="connection-api-note" style="color:#d97706;">Token expires soon — reconnect to refresh</p>' : ''}
+    `;
+
+    if (detailEl) {
+      detailEl.style.display = 'block';
+      detailEl.innerHTML = `
+        <span class="connection-username">@${displayName}</span>
+        <span class="connection-meta">Last synced: ${lastSynced}</span>
+      `;
+    }
+
+    // Wire sync button
+    $('syncInstagramBtn')?.addEventListener('click', async () => {
+      const btn = $('syncInstagramBtn');
+      btn.disabled = true;
+      btn.innerHTML = '<div class="spinner-sm"></div> Syncing...';
+
+      try {
+        const result = await DB.syncInstagram(connection?.id);
+        if (result.error) {
+          toast(result.error, 'error');
+        } else {
+          toast(`Synced ${result.totalPosts || 0} posts from Instagram`);
+          // Update localStorage with synced data for immediate rendering
+          if (result.posts?.length) {
+            const content = getArr(CONTENT_KEY);
+            let added = 0;
+            result.posts.forEach(post => {
+              // Avoid duplicates by checking permalink
+              if (!content.find(c => c.link === post.permalink)) {
+                content.push({
+                  id: genId(),
+                  idea: (post.caption || 'Instagram Post').substring(0, 100),
+                  platform: 'Instagram',
+                  format: post.type,
+                  status: 'Published',
+                  link: post.permalink,
+                  pillar: '',
+                  postDate: post.timestamp?.split('T')[0] || '',
+                  notes: `Likes: ${post.likes} | Comments: ${post.comments} | Reach: ${post.reach} | Saves: ${post.saves}`,
+                  synced: true
+                });
+                added++;
+              }
+            });
+            if (added > 0) {
+              setArr(CONTENT_KEY, content);
+              renderContentGrid();
+              updateDashboard();
+              toast(`Added ${added} new posts to your content library`);
+            }
+          }
+          // Update profile data if available
+          if (result.profile) {
+            localStorage.setItem('ccos_ig_profile', JSON.stringify(result.profile));
+          }
+          renderInstagramConnection(); // refresh UI with new last_synced
+        }
+      } catch (err) {
+        toast('Sync failed: ' + err.message, 'error');
+      } finally {
+        btn.disabled = false;
+        btn.innerHTML = '<i class="ph ph-arrows-clockwise"></i> Sync Now';
+      }
+    });
+
+    // Wire disconnect button
+    $('disconnectInstagramBtn')?.addEventListener('click', async () => {
+      if (!confirm('Disconnect Instagram? Your synced data will remain, but no new data will be pulled.')) return;
+      if (connection) {
+        await DB.disconnectPlatform(connection.id);
+      }
+      localStorage.removeItem('ccos_ig_connected');
+      localStorage.removeItem('ccos_ig_username');
+      localStorage.removeItem('ccos_ig_profile');
+      toast('Instagram disconnected');
+      renderInstagramConnection();
+    });
+
+  } else {
+    // Not connected state
+    statusEl.innerHTML = `
+      <button class="btn btn-primary btn-sm" id="connectInstagramBtn">
+        <i class="ph ph-plug"></i> Connect Instagram
+      </button>
+      <p class="connection-api-note">Requires Instagram Business/Creator account</p>
+    `;
+    if (detailEl) {
+      detailEl.style.display = 'none';
+      detailEl.innerHTML = '';
+    }
+    // Re-wire button
+    $('connectInstagramBtn')?.addEventListener('click', () => {
+      window.location.href = '/api/auth/instagram?returnTo=/';
+    });
+  }
+}
+
+// ============================================================
 // INITIALIZATION
 // ============================================================
 function init(){
@@ -1360,6 +1615,7 @@ function init(){
   renderPrompts();
   renderSavedAnalyses();
   renderPerformance();
+  initPlatformConnections();
 }
 
 async function boot() {

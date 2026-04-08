@@ -384,6 +384,55 @@ const DB = {
       }, { onConflict: 'user_id,week_start' });
   },
 
+  // ---- PLATFORM CONNECTIONS ----
+  async getConnections() {
+    if (!this._userId) return JSON.parse(localStorage.getItem('ccos_connections') || '[]');
+    const { data } = await supabase
+      .from('platform_connections')
+      .select('id, platform, platform_username, status, last_synced_at, metadata, token_expires_at')
+      .eq('user_id', this._userId);
+    return data || [];
+  },
+
+  async claimConnection(claimToken) {
+    // After OAuth callback, claim the connection for the current user
+    if (!this._userId) return { error: 'Not authenticated' };
+    const { data, error } = await supabase
+      .from('platform_connections')
+      .update({ user_id: this._userId, claim_token: null })
+      .eq('claim_token', claimToken)
+      .select()
+      .single();
+    return { data, error };
+  },
+
+  async disconnectPlatform(connectionId) {
+    if (!this._userId) return;
+    await supabase
+      .from('platform_connections')
+      .update({ status: 'disconnected', access_token: null, page_access_token: null })
+      .eq('id', connectionId)
+      .eq('user_id', this._userId);
+  },
+
+  async syncInstagram(connectionId) {
+    const resp = await fetch('/api/sync/instagram', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ user_id: this._userId })
+    });
+    return await resp.json();
+  },
+
+  async syncTikTok(connectionId) {
+    const resp = await fetch('/api/sync/tiktok', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ user_id: this._userId })
+    });
+    return await resp.json();
+  },
+
   // ---- BULK EXPORT / IMPORT ----
   async exportAll() {
     return {

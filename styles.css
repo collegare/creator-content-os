@@ -716,3 +716,10 @@ a:hover { color: var(--color-primary-hover); }
 .ai-writer-controls { display:flex;flex-direction:column;gap:12px; }
 .ai-writer-row { display:grid;grid-template-columns:1fr 1fr;gap:12px; }
 @media(max-width:600px){ .ai-writer-row{grid-template-columns:1fr;} }
+
+/* Platform Connection States */
+.connection-badge.connected { background:rgba(22,163,74,0.1);color:#16a34a;padding:4px 10px;border-radius:20px;font-size:11px;font-weight:600;display:inline-flex;align-items:center;gap:4px; }
+.connection-actions { display:flex;gap:8px;margin-top:8px; }
+.connection-detail { margin-top:8px; }
+.connection-username { font-size:13px;font-weight:600;color:var(--color-primary);display:block; }
+.connection-meta { font-size:11px;color:var(--color-text-muted);display:block;margin-top:2px; }

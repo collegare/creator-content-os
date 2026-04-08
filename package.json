@@ -1,0 +1,9 @@
+{
+  "name": "creator-content-os",
+  "version": "2.0.0",
+  "private": true,
+  "description": "Creator Content OS by Collegare Studio",
+  "dependencies": {
+    "@supabase/supabase-js": "^2.39.0"
+  }
+}
