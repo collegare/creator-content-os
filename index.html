@@ -1,0 +1,995 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Creator Content OS — Collegare Studio</title>
+  <meta name="description" content="Creator Content OS by Collegare Studio — the premium content strategy operating system for creators." />
+
+  <!-- Google Fonts: Be Vietnam Pro -->
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
+
+  <!-- Phosphor Icons -->
+  <link rel="stylesheet" href="https://unpkg.com/@phosphor-icons/web@2.0.3/src/regular/style.css" />
+  <link rel="stylesheet" href="https://unpkg.com/@phosphor-icons/web@2.0.3/src/bold/style.css" />
+  <link rel="stylesheet" href="https://unpkg.com/@phosphor-icons/web@2.0.3/src/fill/style.css" />
+
+  <!-- Chart.js -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+
+  <!-- App Stylesheet -->
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+
+  <!-- ============================================================
+       SIDEBAR NAVIGATION
+       ============================================================ -->
+  <aside class="sidebar" id="sidebar">
+    <div class="sidebar-brand">
+      <div class="brand-icon">C</div>
+      <div class="brand-text">
+        <span class="brand-name">Creator Content OS</span>
+        <span class="brand-sub">by Collegare Studio</span>
+      </div>
+    </div>
+
+    <nav class="sidebar-nav">
+      <div class="nav-group-label">Command Center</div>
+      <button class="nav-item active" data-tab="dashboard">
+        <i class="ph ph-squares-four"></i>
+        <span>Dashboard</span>
+      </button>
+      <button class="nav-item" data-tab="planner">
+        <i class="ph ph-calendar-dots"></i>
+        <span>Content Planner</span>
+      </button>
+
+      <div class="nav-group-label">Intelligence</div>
+      <button class="nav-item" data-tab="intelligence">
+        <i class="ph ph-brain"></i>
+        <span>Strategy Intelligence</span>
+      </button>
+      <button class="nav-item" data-tab="analyzer">
+        <i class="ph ph-magnifying-glass-plus"></i>
+        <span>Content Analyzer</span>
+      </button>
+      <button class="nav-item" data-tab="performance">
+        <i class="ph ph-chart-line-up"></i>
+        <span>Performance</span>
+      </button>
+
+      <div class="nav-group-label">Growth</div>
+      <button class="nav-item" data-tab="monetization">
+        <i class="ph ph-currency-circle-dollar"></i>
+        <span>Monetization</span>
+      </button>
+      <button class="nav-item" data-tab="quarterly">
+        <i class="ph ph-flag-banner"></i>
+        <span>Quarterly Plan</span>
+      </button>
+
+      <div class="nav-group-label">Tools</div>
+      <button class="nav-item" data-tab="prompts">
+        <i class="ph ph-sparkle"></i>
+        <span>Prompt Studio</span>
+      </button>
+      <button class="nav-item" data-tab="settings">
+        <i class="ph ph-gear"></i>
+        <span>Settings</span>
+      </button>
+    </nav>
+
+    <div class="sidebar-footer">
+      <div class="sidebar-footer-text">v2.0 &middot; Collegare Studio</div>
+    </div>
+  </aside>
+
+  <!-- ============================================================
+       MOBILE HEADER
+       ============================================================ -->
+  <header class="mobile-header" id="mobileHeader">
+    <button class="mobile-menu-btn" id="mobileMenuBtn">
+      <i class="ph ph-list"></i>
+    </button>
+    <span class="mobile-brand">Creator Content OS</span>
+    <div style="width:32px"></div>
+  </header>
+
+  <!-- ============================================================
+       MAIN CONTENT AREA
+       ============================================================ -->
+  <main class="main-content" id="mainContent">
+
+    <!-- ========== DASHBOARD ========== -->
+    <section class="tab-content active" id="tab-dashboard">
+      <div class="page-header">
+        <div>
+          <h1 class="page-title">Welcome back, creator</h1>
+          <p class="page-subtitle">Your content command center — plan smarter, post with purpose, grow with strategy.</p>
+        </div>
+      </div>
+
+      <!-- Strategy Score Banner -->
+      <div class="strategy-score-banner" id="strategyScoreBanner">
+        <div class="score-ring-wrapper">
+          <canvas id="scoreRingCanvas" width="100" height="100"></canvas>
+          <div class="score-ring-number" id="scoreRingNumber">—</div>
+        </div>
+        <div class="score-details">
+          <h3>Strategy Health Score</h3>
+          <p id="scoreDescription">Add content to your planner and track performance to generate your personalized strategy score.</p>
+          <div class="score-factors" id="scoreFactors"></div>
+        </div>
+      </div>
+
+      <!-- Summary Cards -->
+      <div class="summary-cards">
+        <div class="summary-card card-scheduled">
+          <div class="summary-icon"><i class="ph-fill ph-calendar-check"></i></div>
+          <div class="summary-info">
+            <span class="summary-number" id="stat-scheduled">0</span>
+            <span class="summary-label">Scheduled</span>
+          </div>
+        </div>
+        <div class="summary-card card-progress">
+          <div class="summary-icon"><i class="ph-fill ph-pencil-line"></i></div>
+          <div class="summary-info">
+            <span class="summary-number" id="stat-progress">0</span>
+            <span class="summary-label">In Progress</span>
+          </div>
+        </div>
+        <div class="summary-card card-posted">
+          <div class="summary-icon"><i class="ph-fill ph-check-circle"></i></div>
+          <div class="summary-info">
+            <span class="summary-number" id="stat-posted">0</span>
+            <span class="summary-label">Posted This Week</span>
+          </div>
+        </div>
+        <div class="summary-card card-ideas">
+          <div class="summary-icon"><i class="ph-fill ph-lightbulb"></i></div>
+          <div class="summary-info">
+            <span class="summary-number" id="stat-ideas">0</span>
+            <span class="summary-label">Ideas Bank</span>
+          </div>
+        </div>
+        <div class="summary-card card-top">
+          <div class="summary-icon"><i class="ph-fill ph-trophy"></i></div>
+          <div class="summary-info">
+            <span class="summary-number" id="stat-top">0</span>
+            <span class="summary-label">Top Performers</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Dashboard Grid -->
+      <div class="dashboard-grid">
+        <!-- Platform Overview -->
+        <div class="card platform-overview-card">
+          <div class="card-header">
+            <i class="ph ph-devices"></i>
+            <h3>Platform Overview</h3>
+          </div>
+          <div class="card-body">
+            <div class="platform-mini-cards" id="platformMiniCards">
+              <!-- Populated by JS -->
+            </div>
+          </div>
+        </div>
+
+        <!-- This Week's Focus -->
+        <div class="card focus-card">
+          <div class="card-header">
+            <i class="ph ph-target"></i>
+            <h3>This Week's Focus</h3>
+          </div>
+          <div class="card-body">
+            <div class="focus-input-area">
+              <textarea id="weeklyFocusInput" class="focus-textarea" placeholder="What's your content focus this week? Write your intention here..."></textarea>
+              <button class="btn btn-primary btn-sm" id="saveFocusBtn">Save Focus</button>
+            </div>
+            <div class="focus-display" id="focusDisplay" style="display:none;">
+              <p id="focusText"></p>
+              <button class="btn btn-ghost btn-sm" id="editFocusBtn">Edit</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Weekly Workflow (collapsed into dashboard) -->
+        <div class="card workflow-preview-card full-width-card">
+          <div class="card-header">
+            <i class="ph ph-list-checks"></i>
+            <h3>Weekly Workflow</h3>
+            <button class="btn btn-xs btn-ghost expand-workflow-btn" id="expandWorkflowBtn">View Full Workflow</button>
+          </div>
+          <div class="card-body">
+            <div class="workflow-mini-steps" id="workflowMiniSteps">
+              <!-- Populated by JS -->
+            </div>
+          </div>
+        </div>
+
+        <!-- Recent Content -->
+        <div class="card recent-card full-width-card">
+          <div class="card-header">
+            <i class="ph ph-clock"></i>
+            <h3>Recent Content</h3>
+          </div>
+          <div class="card-body">
+            <div id="recent-content" class="recent-list"></div>
+            <div class="empty-state" id="recent-empty">
+              <i class="ph ph-note-pencil"></i>
+              <p>No content tracked yet. Head to the Content Planner to start building your pipeline.</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ========== CONTENT PLANNER ========== -->
+    <section class="tab-content" id="tab-planner">
+      <div class="page-header">
+        <div>
+          <h1 class="page-title">Content Planner</h1>
+          <p class="page-subtitle">Your full content pipeline — from idea to published, all in one place.</p>
+        </div>
+        <button class="btn btn-primary" id="addContentBtn">
+          <i class="ph ph-plus"></i> Add Content
+        </button>
+      </div>
+
+      <div class="filter-bar">
+        <div class="search-box">
+          <i class="ph ph-magnifying-glass"></i>
+          <input type="text" id="plannerSearch" placeholder="Search content ideas..." />
+        </div>
+        <select id="filterPlatform" class="filter-select">
+          <option value="all">All Platforms</option>
+          <option value="Instagram">Instagram</option>
+          <option value="TikTok">TikTok</option>
+          <option value="YouTube">YouTube</option>
+          <option value="LinkedIn">LinkedIn</option>
+          <option value="Twitter/X">Twitter/X</option>
+          <option value="Pinterest">Pinterest</option>
+          <option value="Blog">Blog</option>
+        </select>
+        <select id="filterContentStatus" class="filter-select">
+          <option value="all">All Statuses</option>
+          <option value="Idea">Idea</option>
+          <option value="Scripting">Scripting</option>
+          <option value="Filming">Filming</option>
+          <option value="Editing">Editing</option>
+          <option value="Scheduled">Scheduled</option>
+          <option value="Posted">Posted</option>
+          <option value="Reviewing">Reviewing</option>
+        </select>
+        <select id="filterPillar" class="filter-select">
+          <option value="all">All Pillars</option>
+          <option value="Growth">Growth</option>
+          <option value="Value">Value</option>
+          <option value="Lifestyle">Lifestyle</option>
+          <option value="Authority">Authority</option>
+          <option value="Conversion">Conversion</option>
+          <option value="Brand">Brand</option>
+        </select>
+      </div>
+
+      <!-- Pipeline Stats -->
+      <div class="pipeline-stats" id="pipelineStats"></div>
+
+      <div id="content-grid" class="content-grid"></div>
+      <div class="empty-state" id="content-empty">
+        <i class="ph ph-note-pencil"></i>
+        <p>No content in your pipeline yet.</p>
+        <button class="btn btn-secondary" id="addFirstContent">Add Your First Content Idea</button>
+      </div>
+    </section>
+
+    <!-- ========== STRATEGY INTELLIGENCE ========== -->
+    <section class="tab-content" id="tab-intelligence">
+      <div class="page-header">
+        <div>
+          <h1 class="page-title">Strategy Intelligence</h1>
+          <p class="page-subtitle">Your personalized content strategy brain — powered by your actual data and patterns.</p>
+        </div>
+        <button class="btn btn-primary" id="runIntelligenceBtn">
+          <i class="ph ph-lightning"></i> Generate Insights
+        </button>
+      </div>
+
+      <!-- Creator Profile Card -->
+      <div class="intel-profile card" id="intelProfile">
+        <div class="card-header">
+          <i class="ph ph-user-circle"></i>
+          <h3>Creator Profile</h3>
+          <span class="badge badge-auto" id="profileBadge">Auto-detected from your data</span>
+        </div>
+        <div class="card-body">
+          <div class="profile-grid" id="profileGrid">
+            <!-- Populated by JS: growth stage, niche, strongest platform, etc. -->
+          </div>
+        </div>
+      </div>
+
+      <!-- Strategy Score Breakdown -->
+      <div class="intel-score-section">
+        <div class="card intel-score-card">
+          <div class="card-header">
+            <i class="ph ph-chart-pie-slice"></i>
+            <h3>Content Mix Analysis</h3>
+          </div>
+          <div class="card-body">
+            <div class="chart-container">
+              <canvas id="contentMixChart"></canvas>
+            </div>
+            <div id="mixAnalysis" class="mix-analysis"></div>
+          </div>
+        </div>
+
+        <div class="card intel-score-card">
+          <div class="card-header">
+            <i class="ph ph-chart-bar"></i>
+            <h3>Format Performance</h3>
+          </div>
+          <div class="card-body">
+            <div class="chart-container">
+              <canvas id="formatChart"></canvas>
+            </div>
+            <div id="formatAnalysis" class="mix-analysis"></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Intelligence Cards -->
+      <div class="intel-cards-grid" id="intelCardsGrid">
+        <!-- Populated by JS: what to post more, less, platform recs, etc. -->
+      </div>
+
+      <!-- Weekly Review (moved from standalone tab) -->
+      <div class="card intel-review-card">
+        <div class="card-header">
+          <i class="ph ph-notebook"></i>
+          <h3>Weekly Review Notes</h3>
+        </div>
+        <div class="card-body">
+          <div class="review-sections-mini" id="reviewSectionsMini"></div>
+          <textarea id="reviewNotes" class="review-textarea" placeholder="Write your weekly content review notes here. What patterns are you seeing? What will you do differently next week?"></textarea>
+          <div class="review-notes-actions">
+            <button class="btn btn-primary btn-sm" id="saveReviewBtn">Save Review</button>
+            <span class="review-saved-msg" id="reviewSavedMsg"></span>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ========== CONTENT ANALYZER ========== -->
+    <section class="tab-content" id="tab-analyzer">
+      <div class="page-header">
+        <div>
+          <h1 class="page-title">Content Analyzer</h1>
+          <p class="page-subtitle">Reverse-engineer what makes content work — extract strategy, not just ideas.</p>
+        </div>
+      </div>
+
+      <!-- Analyzer Input -->
+      <div class="card analyzer-input-card">
+        <div class="card-header">
+          <i class="ph ph-link"></i>
+          <h3>Analyze a Post</h3>
+        </div>
+        <div class="card-body">
+          <div class="analyzer-form" id="analyzerForm">
+            <div class="form-row">
+              <div class="form-group flex-2">
+                <label>Post Link</label>
+                <input type="url" id="analyzerLink" placeholder="https://www.instagram.com/reel/..." />
+              </div>
+              <div class="form-group">
+                <label>Platform</label>
+                <select id="analyzerPlatform">
+                  <option value="Instagram">Instagram</option>
+                  <option value="TikTok">TikTok</option>
+                  <option value="YouTube">YouTube</option>
+                  <option value="Twitter/X">Twitter/X</option>
+                  <option value="LinkedIn">LinkedIn</option>
+                </select>
+              </div>
+            </div>
+            <div class="form-row">
+              <div class="form-group">
+                <label>Content Type</label>
+                <select id="analyzerContentType">
+                  <option value="">Auto-detect or select...</option>
+                  <option value="Talking to camera">Talking to camera</option>
+                  <option value="Voiceover with b-roll">Voiceover with b-roll</option>
+                  <option value="Day in the life">Day in the life</option>
+                  <option value="Aesthetic b-roll">Aesthetic b-roll</option>
+                  <option value="Short-form educational">Short-form educational</option>
+                  <option value="Trend adaptation">Trend adaptation</option>
+                  <option value="Listicle / tips">Listicle / tips</option>
+                  <option value="Storytelling monologue">Storytelling monologue</option>
+                  <option value="Tutorial / how-to">Tutorial / how-to</option>
+                  <option value="Carousel / slideshow">Carousel / slideshow</option>
+                  <option value="Product showcase">Product showcase</option>
+                  <option value="Vlog">Vlog</option>
+                  <option value="Interview / collab">Interview / collab</option>
+                  <option value="Behind the scenes">Behind the scenes</option>
+                  <option value="UGC / review">UGC / review</option>
+                </select>
+              </div>
+              <div class="form-group">
+                <label>Creator's Niche (if known)</label>
+                <input type="text" id="analyzerNiche" placeholder="e.g. Fashion, Tech, Fitness" />
+              </div>
+            </div>
+            <div class="form-group">
+              <label>Caption / Transcript</label>
+              <textarea id="analyzerCaption" rows="3" placeholder="Paste the caption, transcript, or summarize the content..."></textarea>
+            </div>
+            <div class="form-row three-col">
+              <div class="form-group">
+                <label>Views / Plays</label>
+                <input type="text" id="analyzerViews" placeholder="e.g. 250K" />
+              </div>
+              <div class="form-group">
+                <label>Likes</label>
+                <input type="text" id="analyzerLikes" placeholder="e.g. 12K" />
+              </div>
+              <div class="form-group">
+                <label>Comments</label>
+                <input type="text" id="analyzerComments" placeholder="e.g. 340" />
+              </div>
+            </div>
+            <div class="form-row">
+              <div class="form-group">
+                <label>Saves / Shares</label>
+                <input type="text" id="analyzerSaves" placeholder="e.g. 2.1K saves, 800 shares" />
+              </div>
+              <div class="form-group">
+                <label>Your Observations</label>
+                <input type="text" id="analyzerNotes" placeholder="What caught your attention?" />
+              </div>
+            </div>
+            <div class="analyzer-actions">
+              <button class="btn btn-primary btn-lg" id="runAnalysisBtn">
+                <i class="ph ph-magnifying-glass-plus"></i> Run Deep Analysis
+              </button>
+              <span class="analyzer-mode-label">
+                <i class="ph ph-info"></i>
+                V2 Manual Analysis — AI auto-analysis coming in V3
+              </span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Analysis Results -->
+      <div id="analysisResults" style="display:none;">
+        <!-- Populated by JS -->
+      </div>
+
+      <!-- Saved Analyses -->
+      <div class="card saved-analyses-card">
+        <div class="card-header">
+          <i class="ph ph-folder-open"></i>
+          <h3>Saved Analyses</h3>
+        </div>
+        <div class="card-body">
+          <div id="savedAnalyses" class="saved-analyses-list"></div>
+          <div class="empty-state" id="analyses-empty">
+            <i class="ph ph-magnifying-glass"></i>
+            <p>No analyses saved yet. Run your first content analysis above.</p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ========== PERFORMANCE ========== -->
+    <section class="tab-content" id="tab-performance">
+      <div class="page-header">
+        <div>
+          <h1 class="page-title">Performance</h1>
+          <p class="page-subtitle">Track your numbers across platforms, spot trends, and understand what's moving the needle.</p>
+        </div>
+      </div>
+
+      <!-- Platform Tabs -->
+      <div class="platform-tabs" id="perfPlatformTabs">
+        <button class="platform-tab active" data-platform="all">All Platforms</button>
+        <button class="platform-tab" data-platform="Instagram">Instagram</button>
+        <button class="platform-tab" data-platform="TikTok">TikTok</button>
+        <button class="platform-tab" data-platform="YouTube">YouTube</button>
+      </div>
+
+      <!-- Performance Stats -->
+      <div class="perf-stat-cards" id="perfStatCards"></div>
+
+      <!-- Charts Row -->
+      <div class="perf-charts-row">
+        <div class="card perf-chart-card">
+          <div class="card-header">
+            <i class="ph ph-chart-line"></i>
+            <h3>Growth Over Time</h3>
+          </div>
+          <div class="card-body">
+            <div class="chart-container chart-wide">
+              <canvas id="growthChart"></canvas>
+            </div>
+          </div>
+        </div>
+        <div class="card perf-chart-card">
+          <div class="card-header">
+            <i class="ph ph-chart-bar"></i>
+            <h3>Engagement Breakdown</h3>
+          </div>
+          <div class="card-body">
+            <div class="chart-container chart-wide">
+              <canvas id="engagementChart"></canvas>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Stats Entry -->
+      <div class="perf-entry-card card">
+        <div class="card-header">
+          <i class="ph ph-pencil-simple"></i>
+          <h3>Log Weekly Stats</h3>
+          <span class="badge badge-info">Manual Entry — API sync coming in V3</span>
+        </div>
+        <div class="card-body">
+          <div class="perf-form" id="perfForm">
+            <div class="form-row three-col">
+              <div class="form-group">
+                <label>Platform</label>
+                <select id="perfPlatform">
+                  <option value="Instagram">Instagram</option>
+                  <option value="TikTok">TikTok</option>
+                  <option value="YouTube">YouTube</option>
+                  <option value="LinkedIn">LinkedIn</option>
+                </select>
+              </div>
+              <div class="form-group">
+                <label>Week Of</label>
+                <input type="date" id="perfWeek" />
+              </div>
+              <div class="form-group">
+                <label>Followers</label>
+                <input type="text" id="perfFollowers" placeholder="e.g. 12,450" />
+              </div>
+            </div>
+            <div class="form-row four-col">
+              <div class="form-group"><label>Views</label><input type="text" id="perfViews" placeholder="0" /></div>
+              <div class="form-group"><label>Likes</label><input type="text" id="perfLikes" placeholder="0" /></div>
+              <div class="form-group"><label>Comments</label><input type="text" id="perfComments" placeholder="0" /></div>
+              <div class="form-group"><label>Saves</label><input type="text" id="perfSaves" placeholder="0" /></div>
+            </div>
+            <div class="form-row four-col">
+              <div class="form-group"><label>Shares</label><input type="text" id="perfShares" placeholder="0" /></div>
+              <div class="form-group"><label>Watch Time</label><input type="text" id="perfWatchTime" placeholder="e.g. 45s avg" /></div>
+              <div class="form-group"><label>Top Post</label><input type="text" id="perfTopPost" placeholder="e.g. Hook reel" /></div>
+              <div class="form-group"><label>Notes</label><input type="text" id="perfNotes" placeholder="Key takeaway" /></div>
+            </div>
+            <button class="btn btn-primary" id="savePerfBtn"><i class="ph ph-floppy-disk"></i> Save Stats</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Performance History -->
+      <div class="card perf-history-card">
+        <div class="card-header">
+          <i class="ph ph-clock-counter-clockwise"></i>
+          <h3>Performance History</h3>
+        </div>
+        <div class="card-body">
+          <div id="perfHistory" class="perf-history"></div>
+          <div class="empty-state" id="perf-empty">
+            <i class="ph ph-chart-bar"></i>
+            <p>No performance data yet. Start tracking your stats above.</p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ========== MONETIZATION ========== -->
+    <section class="tab-content" id="tab-monetization">
+      <div class="page-header">
+        <div>
+          <h1 class="page-title">Monetization</h1>
+          <p class="page-subtitle">Strategic revenue planning based on your audience, niche, and creator stage.</p>
+        </div>
+      </div>
+
+      <!-- Monetization Stage -->
+      <div class="monet-stage-banner" id="monetStageBanner">
+        <!-- Populated by JS: stage detection based on follower count -->
+      </div>
+
+      <!-- Revenue Streams Grid -->
+      <div class="monet-streams-grid" id="monetStreamsGrid">
+        <!-- Populated by JS: brand deals, digital products, affiliate, etc. -->
+      </div>
+
+      <!-- Revenue Tracker -->
+      <div class="card monet-tracker-card">
+        <div class="card-header">
+          <i class="ph ph-wallet"></i>
+          <h3>Revenue Tracker</h3>
+        </div>
+        <div class="card-body">
+          <div class="monet-tracker-form">
+            <div class="form-row four-col">
+              <div class="form-group"><label>Month</label><input type="month" id="monetMonth" /></div>
+              <div class="form-group"><label>Revenue Stream</label>
+                <select id="monetStream">
+                  <option value="Brand Deals">Brand Deals</option>
+                  <option value="Digital Products">Digital Products</option>
+                  <option value="Affiliate">Affiliate</option>
+                  <option value="Services">Services</option>
+                  <option value="Memberships">Memberships</option>
+                  <option value="Consulting">Consulting</option>
+                  <option value="Ad Revenue">Ad Revenue</option>
+                  <option value="Other">Other</option>
+                </select>
+              </div>
+              <div class="form-group"><label>Amount ($)</label><input type="text" id="monetAmount" placeholder="0" /></div>
+              <div class="form-group"><label>Notes</label><input type="text" id="monetNotes" placeholder="Details" /></div>
+            </div>
+            <button class="btn btn-primary" id="saveMonetBtn"><i class="ph ph-floppy-disk"></i> Log Revenue</button>
+          </div>
+          <div class="monet-history" id="monetHistory"></div>
+          <div class="empty-state" id="monet-empty">
+            <i class="ph ph-wallet"></i>
+            <p>No revenue logged yet. Start tracking your income streams above.</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- Monetization Strategy -->
+      <div class="card monet-strategy-card">
+        <div class="card-header">
+          <i class="ph ph-strategy"></i>
+          <h3>Your Monetization Roadmap</h3>
+        </div>
+        <div class="card-body">
+          <div id="monetRoadmap" class="monet-roadmap">
+            <!-- Populated by JS based on creator stage -->
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ========== QUARTERLY PLAN ========== -->
+    <section class="tab-content" id="tab-quarterly">
+      <div class="page-header">
+        <div>
+          <h1 class="page-title">Quarterly Plan</h1>
+          <p class="page-subtitle" id="quarterLabel">Map your growth, content, and monetization goals for the quarter ahead.</p>
+        </div>
+        <button class="btn btn-primary" id="saveQuarterlyBtn">
+          <i class="ph ph-floppy-disk"></i> Save Plan
+        </button>
+      </div>
+
+      <!-- Quarter Snapshot -->
+      <div class="quarter-snapshot" id="quarterSnapshot">
+        <!-- Populated by JS -->
+      </div>
+
+      <!-- Goals Grid -->
+      <div class="quarter-goals-grid">
+        <div class="card quarter-goal-card">
+          <div class="card-header"><i class="ph ph-trend-up"></i><h3>Growth Goals</h3></div>
+          <div class="card-body">
+            <textarea id="qGrowth" class="quarter-textarea" placeholder="What growth milestones are you targeting this quarter? e.g. Hit 10K on Instagram, Launch TikTok presence, Reach 1K YouTube subscribers..."></textarea>
+          </div>
+        </div>
+        <div class="card quarter-goal-card">
+          <div class="card-header"><i class="ph ph-video-camera"></i><h3>Content Goals</h3></div>
+          <div class="card-body">
+            <textarea id="qContent" class="quarter-textarea" placeholder="What content commitments are you making? e.g. Post 4x/week on IG, Launch YouTube Shorts, Test 3 new content formats..."></textarea>
+          </div>
+        </div>
+        <div class="card quarter-goal-card">
+          <div class="card-header"><i class="ph ph-handshake"></i><h3>Brand Goals</h3></div>
+          <div class="card-body">
+            <textarea id="qBrand" class="quarter-textarea" placeholder="What brand positioning or partnership goals? e.g. Land 2 paid brand deals, Pitch 10 brands, Build media kit..."></textarea>
+          </div>
+        </div>
+        <div class="card quarter-goal-card">
+          <div class="card-header"><i class="ph ph-currency-circle-dollar"></i><h3>Monetization Goals</h3></div>
+          <div class="card-body">
+            <textarea id="qMonetization" class="quarter-textarea" placeholder="Revenue targets for the quarter? e.g. Hit $5K/mo, Launch digital product, Start affiliate income..."></textarea>
+          </div>
+        </div>
+        <div class="card quarter-goal-card">
+          <div class="card-header"><i class="ph ph-package"></i><h3>Offer Goals</h3></div>
+          <div class="card-body">
+            <textarea id="qOffers" class="quarter-textarea" placeholder="What products or services are you building or selling? e.g. Launch course, Open 1:1 coaching, Create template pack..."></textarea>
+          </div>
+        </div>
+        <div class="card quarter-goal-card">
+          <div class="card-header"><i class="ph ph-devices"></i><h3>Platform Priorities</h3></div>
+          <div class="card-body">
+            <textarea id="qPlatforms" class="quarter-textarea" placeholder="Which platforms are you prioritizing and why? e.g. Instagram primary, TikTok for discovery, LinkedIn for authority..."></textarea>
+          </div>
+        </div>
+      </div>
+
+      <!-- Campaign Themes + Focus Metrics -->
+      <div class="quarter-bottom-grid">
+        <div class="card">
+          <div class="card-header"><i class="ph ph-megaphone"></i><h3>Campaign Themes</h3></div>
+          <div class="card-body">
+            <textarea id="qCampaigns" class="quarter-textarea" placeholder="What campaign themes or content series are you planning? e.g. 'Creator Economy Week', '30 Days of Reels', Product launch sequence..."></textarea>
+          </div>
+        </div>
+        <div class="card">
+          <div class="card-header"><i class="ph ph-chart-line-up"></i><h3>Focus Metrics</h3></div>
+          <div class="card-body">
+            <textarea id="qMetrics" class="quarter-textarea" placeholder="What key metrics will you track to measure success? e.g. Follower growth rate, Save rate, Email list size, Revenue per post, Brand deal close rate..."></textarea>
+          </div>
+        </div>
+        <div class="card full-width-card">
+          <div class="card-header"><i class="ph ph-rocket"></i><h3>Next Best Actions</h3></div>
+          <div class="card-body">
+            <textarea id="qActions" class="quarter-textarea" placeholder="What are the 3-5 highest-impact actions you need to take this quarter? Be specific and actionable."></textarea>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ========== PROMPT STUDIO ========== -->
+    <section class="tab-content" id="tab-prompts">
+      <div class="page-header">
+        <div>
+          <h1 class="page-title">Prompt Studio</h1>
+          <p class="page-subtitle">AI-ready prompts to plan, script, analyze, and level up your content strategy.</p>
+        </div>
+      </div>
+
+      <div class="prompt-categories" id="promptCategories">
+        <button class="prompt-cat-btn active" data-cat="all">All</button>
+        <button class="prompt-cat-btn" data-cat="ideation">Ideation</button>
+        <button class="prompt-cat-btn" data-cat="scripting">Scripting</button>
+        <button class="prompt-cat-btn" data-cat="strategy">Strategy</button>
+        <button class="prompt-cat-btn" data-cat="repurpose">Repurpose</button>
+        <button class="prompt-cat-btn" data-cat="analysis">Analysis</button>
+        <button class="prompt-cat-btn" data-cat="monetization">Monetization</button>
+      </div>
+
+      <div class="prompts-grid" id="prompts-grid"></div>
+    </section>
+
+    <!-- ========== SETTINGS ========== -->
+    <section class="tab-content" id="tab-settings">
+      <div class="page-header">
+        <div>
+          <h1 class="page-title">Settings</h1>
+          <p class="page-subtitle">Configure your creator profile and platform connections.</p>
+        </div>
+      </div>
+
+      <!-- Creator Profile Settings -->
+      <div class="card settings-card">
+        <div class="card-header">
+          <i class="ph ph-user-circle"></i>
+          <h3>Creator Profile</h3>
+        </div>
+        <div class="card-body">
+          <div class="form-row">
+            <div class="form-group"><label>Creator Name</label><input type="text" id="settingsName" placeholder="Your name or brand name" /></div>
+            <div class="form-group"><label>Primary Niche</label><input type="text" id="settingsNiche" placeholder="e.g. Fashion, Tech, Wellness" /></div>
+          </div>
+          <div class="form-row">
+            <div class="form-group"><label>Primary Platform</label>
+              <select id="settingsPlatform">
+                <option value="">Select...</option>
+                <option value="Instagram">Instagram</option>
+                <option value="TikTok">TikTok</option>
+                <option value="YouTube">YouTube</option>
+                <option value="LinkedIn">LinkedIn</option>
+              </select>
+            </div>
+            <div class="form-group"><label>Creator Stage</label>
+              <select id="settingsStage">
+                <option value="">Auto-detect</option>
+                <option value="Pre-launch">Pre-launch (0–1K)</option>
+                <option value="Early Growth">Early Growth (1K–10K)</option>
+                <option value="Rising Creator">Rising Creator (10K–50K)</option>
+                <option value="Established">Established (50K–250K)</option>
+                <option value="Top Creator">Top Creator (250K+)</option>
+              </select>
+            </div>
+          </div>
+          <div class="form-group full-width">
+            <label>Content Goals (comma-separated)</label>
+            <input type="text" id="settingsGoals" placeholder="e.g. Grow audience, Land brand deals, Launch digital products, Build community" />
+          </div>
+          <button class="btn btn-primary" id="saveSettingsBtn"><i class="ph ph-floppy-disk"></i> Save Profile</button>
+        </div>
+      </div>
+
+      <!-- Platform Connections -->
+      <div class="card settings-card">
+        <div class="card-header">
+          <i class="ph ph-plug"></i>
+          <h3>Platform Connections</h3>
+          <span class="badge badge-coming">Coming in V3</span>
+        </div>
+        <div class="card-body">
+          <div class="connections-grid" id="connectionsGrid">
+            <div class="connection-card">
+              <div class="connection-icon" style="background:#f3e8f5;color:#8b3baf;">
+                <i class="ph ph-instagram-logo"></i>
+              </div>
+              <div class="connection-info">
+                <strong>Instagram</strong>
+                <p>Sync followers, engagement, post performance, audience insights</p>
+              </div>
+              <div class="connection-status">
+                <span class="connection-badge pending">Not Connected</span>
+                <p class="connection-api-note">Requires Instagram Graph API + Meta Business account</p>
+              </div>
+            </div>
+            <div class="connection-card">
+              <div class="connection-icon" style="background:#e8f5f5;color:#000;">
+                <i class="ph ph-tiktok-logo"></i>
+              </div>
+              <div class="connection-info">
+                <strong>TikTok</strong>
+                <p>Sync video views, followers, watch time, trending content data</p>
+              </div>
+              <div class="connection-status">
+                <span class="connection-badge pending">Not Connected</span>
+                <p class="connection-api-note">Requires TikTok Content Posting API access</p>
+              </div>
+            </div>
+            <div class="connection-card">
+              <div class="connection-icon" style="background:#fce8e8;color:#c4302b;">
+                <i class="ph ph-youtube-logo"></i>
+              </div>
+              <div class="connection-info">
+                <strong>YouTube</strong>
+                <p>Sync subscribers, watch hours, video analytics, audience retention</p>
+              </div>
+              <div class="connection-status">
+                <span class="connection-badge pending">Not Connected</span>
+                <p class="connection-api-note">Requires YouTube Data API v3 + OAuth</p>
+              </div>
+            </div>
+          </div>
+          <div class="connection-roadmap">
+            <h4>Connection Architecture Plan</h4>
+            <p>V3 will introduce OAuth-based platform connections. Each platform sync requires a backend server to securely handle API tokens, scheduled data pulls, and webhook events. The current version supports full manual stat tracking with the same data model that will be used by the API sync — so all your manually entered data will carry over seamlessly.</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- Data Management -->
+      <div class="card settings-card">
+        <div class="card-header">
+          <i class="ph ph-database"></i>
+          <h3>Data Management</h3>
+        </div>
+        <div class="card-body">
+          <div class="data-actions">
+            <button class="btn btn-secondary" id="exportDataBtn"><i class="ph ph-download"></i> Export All Data (JSON)</button>
+            <button class="btn btn-ghost" id="importDataBtn"><i class="ph ph-upload"></i> Import Data</button>
+            <input type="file" id="importFileInput" accept=".json" style="display:none" />
+          </div>
+          <p class="data-note">Your data is stored locally in your browser. Export regularly to back up your content planner, performance history, and strategy data.</p>
+        </div>
+      </div>
+    </section>
+
+  </main>
+
+  <!-- ============================================================
+       CONTENT MODAL (Add / Edit)
+       ============================================================ -->
+  <div class="modal-overlay" id="contentModalOverlay">
+    <div class="modal modal-lg" id="contentModal">
+      <div class="modal-header">
+        <h2 id="contentModalTitle">Add Content</h2>
+        <button class="modal-close" id="contentModalClose"><i class="ph ph-x"></i></button>
+      </div>
+      <form id="contentForm" class="modal-form">
+        <input type="hidden" id="contentId" />
+        <div class="form-row">
+          <div class="form-group flex-2">
+            <label for="contentIdea">Content Idea *</label>
+            <input type="text" id="contentIdea" required placeholder="e.g. 5 things I wish I knew before going full-time creator" />
+          </div>
+          <div class="form-group">
+            <label for="contentPlatform">Platform *</label>
+            <select id="contentPlatform" required>
+              <option value="">Select...</option>
+              <option value="Instagram">Instagram</option>
+              <option value="TikTok">TikTok</option>
+              <option value="YouTube">YouTube</option>
+              <option value="LinkedIn">LinkedIn</option>
+              <option value="Twitter/X">Twitter/X</option>
+              <option value="Pinterest">Pinterest</option>
+              <option value="Blog">Blog</option>
+            </select>
+          </div>
+        </div>
+        <div class="form-row three-col">
+          <div class="form-group">
+            <label for="contentPillar">Content Pillar</label>
+            <select id="contentPillar"><option value="">Select...</option><option value="Growth">Growth</option><option value="Value">Value</option><option value="Lifestyle">Lifestyle</option><option value="Authority">Authority</option><option value="Conversion">Conversion</option><option value="Brand">Brand</option></select>
+          </div>
+          <div class="form-group">
+            <label for="contentGoal">Content Goal</label>
+            <select id="contentGoal"><option value="">Select...</option><option value="Grow audience">Grow audience</option><option value="Build trust">Build trust</option><option value="Drive sales">Drive sales</option><option value="Attract brands">Attract brands</option><option value="Educate">Educate</option><option value="Entertain">Entertain</option><option value="Community">Community</option></select>
+          </div>
+          <div class="form-group">
+            <label for="contentFormat">Format</label>
+            <select id="contentFormat"><option value="">Select...</option><option value="Reel">Reel</option><option value="Carousel">Carousel</option><option value="Story">Story</option><option value="Static Post">Static Post</option><option value="TikTok Video">TikTok Video</option><option value="YouTube Video">YouTube Video</option><option value="YouTube Short">YouTube Short</option><option value="Thread">Thread</option><option value="Blog Post">Blog Post</option><option value="Live">Live</option></select>
+          </div>
+        </div>
+        <div class="form-row three-col">
+          <div class="form-group">
+            <label for="contentStatus">Status *</label>
+            <select id="contentStatus" required><option value="Idea">Idea</option><option value="Scripting">Scripting</option><option value="Filming">Filming</option><option value="Editing">Editing</option><option value="Scheduled">Scheduled</option><option value="Posted">Posted</option><option value="Reviewing">Reviewing</option></select>
+          </div>
+          <div class="form-group">
+            <label for="contentType">Organic or Brand</label>
+            <select id="contentType"><option value="Organic">Organic</option><option value="Brand">Brand</option><option value="Affiliate">Affiliate</option></select>
+          </div>
+          <div class="form-group">
+            <label for="contentCTA">CTA</label>
+            <input type="text" id="contentCTA" placeholder="e.g. Save this for later" />
+          </div>
+        </div>
+        <div class="form-row three-col">
+          <div class="form-group"><label for="contentFilmDate">Filming Date</label><input type="date" id="contentFilmDate" /></div>
+          <div class="form-group"><label for="contentEditDate">Editing Date</label><input type="date" id="contentEditDate" /></div>
+          <div class="form-group"><label for="contentPostDate">Posting Date</label><input type="date" id="contentPostDate" /></div>
+        </div>
+        <div class="form-row">
+          <div class="form-group"><label for="contentHookStatus">Hook Status</label><select id="contentHookStatus"><option value="">Select...</option><option value="Not started">Not started</option><option value="Draft">Draft</option><option value="Finalized">Finalized</option></select></div>
+          <div class="form-group"><label for="contentCaptionStatus">Caption Status</label><select id="contentCaptionStatus"><option value="">Select...</option><option value="Not started">Not started</option><option value="Draft">Draft</option><option value="Finalized">Finalized</option></select></div>
+        </div>
+        <div class="form-group full-width"><label for="contentRepurpose">Repurposing Notes</label><textarea id="contentRepurpose" rows="2" placeholder="How could you repurpose this across platforms?"></textarea></div>
+        <div class="form-group full-width"><label for="contentReview">Performance Review Notes</label><textarea id="contentReview" rows="2" placeholder="How did this perform? What would you change?"></textarea></div>
+        <div class="form-group full-width"><label for="contentTakeaway">Final Outcome / Takeaway</label><textarea id="contentTakeaway" rows="2" placeholder="Key learning or result from this content piece."></textarea></div>
+        <div class="form-actions">
+          <button type="button" class="btn btn-ghost" id="contentModalCancel">Cancel</button>
+          <button type="submit" class="btn btn-primary" id="contentModalSubmit">Save Content</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- ============================================================
+       DELETE CONFIRMATION MODAL
+       ============================================================ -->
+  <div class="modal-overlay" id="deleteOverlay">
+    <div class="modal modal-sm">
+      <div class="modal-header">
+        <h2>Delete Item</h2>
+        <button class="modal-close" id="deleteClose"><i class="ph ph-x"></i></button>
+      </div>
+      <div class="modal-body">
+        <p>Are you sure you want to delete this item? This action cannot be undone.</p>
+      </div>
+      <div class="form-actions">
+        <button class="btn btn-ghost" id="deleteCancelBtn">Cancel</button>
+        <button class="btn btn-danger" id="deleteConfirmBtn">Delete</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ============================================================
+       TOAST NOTIFICATION
+       ============================================================ -->
+  <div class="toast-container" id="toastContainer"></div>
+  <div class="sidebar-overlay" id="sidebarOverlay"></div>
+
+  <script src="script.js"></script>
+</body>
+</html>
