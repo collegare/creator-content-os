@@ -449,9 +449,9 @@ function renderContentGrid(){
 
 // Content Modal
 const contentOverlay=$('contentModalOverlay'), contentForm=$('contentForm');
-function openContentModal(data=null){
-  contentForm.reset();$('contentId').value='';$('contentModalTitle').textContent=data?'Edit Content':'Add Content';
-  if(data){$('contentId').value=data.id;['contentIdea','contentPlatform','contentPillar','contentGoal','contentFormat','contentStatus','contentType','contentFilmDate','contentEditDate','contentPostDate','contentCTA','contentHookStatus','contentCaptionStatus','contentRepurpose','contentReview','contentTakeaway'].forEach(fld=>{const el=$(fld);if(el){const key=fld.replace('content','');const k=key.charAt(0).toLowerCase()+key.slice(1);el.value=data[k]||data[fld.replace('content','').replace(/^./,c=>c.toLowerCase())]||'';}});}
+function openContentModal(data=null,prefillDate=null){
+  contentForm.reset();$('contentId').value='';$('contentModalTitle').textContent=data?'Edit Content':'Add Content';if(prefillDate&&!data){$('contentPostDate').value=prefillDate;}
+  if(data){$('contentId').value=data.id;['contentIdea','contentPlatform','contentPillar','contentGoal','contentFormat','contentStatus','contentType','contentFilmDate','contentEditDate','contentPostDate','contentCTA','contentHookText','contentScriptNotes','contentInspoLink','contentHookStatus','contentCaptionStatus','contentRepurpose','contentReview','contentTakeaway'].forEach(fld=>{const el=$(fld);if(el){const key=fld.replace('content','');const k=key.charAt(0).toLowerCase()+key.slice(1);el.value=data[k]||data[fld.replace('content','').replace(/^./,c=>c.toLowerCase())]||'';}});}
   contentOverlay.classList.add('open');
 }
 function closeContentModal(){contentOverlay.classList.remove('open');}
@@ -464,12 +464,12 @@ contentOverlay.addEventListener('click',e=>{if(e.target===contentOverlay)closeCo
 contentForm.addEventListener('submit',e=>{
   e.preventDefault();
   const items=getArr(CONTENT_KEY), id=$('contentId').value;
-  const entry={id:id||genId(),idea:$('contentIdea').value.trim(),platform:$('contentPlatform').value,pillar:$('contentPillar').value,goal:$('contentGoal').value,format:$('contentFormat').value,status:$('contentStatus').value,contentType:$('contentType').value,filmDate:$('contentFilmDate').value,editDate:$('contentEditDate').value,postDate:$('contentPostDate').value,cta:$('contentCTA').value.trim(),hookStatus:$('contentHookStatus').value,captionStatus:$('contentCaptionStatus').value,repurpose:$('contentRepurpose').value.trim(),review:$('contentReview').value.trim(),takeaway:$('contentTakeaway').value.trim(),createdAt:id?(items.find(i=>i.id===id)?.createdAt||new Date().toISOString()):new Date().toISOString()};
+  const entry={id:id||genId(),idea:$('contentIdea').value.trim(),platform:$('contentPlatform').value,pillar:$('contentPillar').value,goal:$('contentGoal').value,format:$('contentFormat').value,status:$('contentStatus').value,contentType:$('contentType').value,filmDate:$('contentFilmDate').value,editDate:$('contentEditDate').value,postDate:$('contentPostDate').value,cta:$('contentCTA').value.trim(),hookText:$('contentHookText').value.trim(),scriptNotes:$('contentScriptNotes').value.trim(),inspoLink:$('contentInspoLink').value.trim(),hookStatus:$('contentHookStatus').value,captionStatus:$('contentCaptionStatus').value,repurpose:$('contentRepurpose').value.trim(),review:$('contentReview').value.trim(),takeaway:$('contentTakeaway').value.trim(),createdAt:id?(items.find(i=>i.id===id)?.createdAt||new Date().toISOString()):new Date().toISOString()};
   if(id){const idx=items.findIndex(i=>i.id===id);if(idx!==-1)items[idx]=entry;}else items.push(entry);
   setArr(CONTENT_KEY,items);closeContentModal();renderContentGrid();updateDashboard();toast(id?'Content updated':'Content added');
   syncToCloud(() => id ? DB.updateContent(id, entry) : DB.addContent(entry));
 });
-window.editContent=function(id){const items=getArr(CONTENT_KEY);const item=items.find(i=>i.id===id);if(item)openContentModal(item);};
+window.openContentModal=openContentModal;window.editContent=function(id){const items=getArr(CONTENT_KEY);const item=items.find(i=>i.id===id);if(item)openContentModal(item);};
 
 // Delete
 const deleteOverlay=$('deleteOverlay');
