@@ -10,7 +10,6 @@
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
-
   <!-- Phosphor Icons -->
   <link rel="stylesheet" href="https://unpkg.com/@phosphor-icons/web@2.0.3/src/regular/style.css" />
   <link rel="stylesheet" href="https://unpkg.com/@phosphor-icons/web@2.0.3/src/bold/style.css" />
@@ -25,6 +24,7 @@
   <!-- App Stylesheet -->
   <link rel="stylesheet" href="styles.css" />
   <link rel="stylesheet" href="monetization-styles.css" />
+      <link rel="stylesheet" href="planner-calendar.css" />
 </head>
 <body>
 
@@ -266,6 +266,21 @@
         <div class="search-box">
           <i class="ph ph-magnifying-glass"></i>
           <input type="text" id="plannerSearch" placeholder="Search content ideas..." />
+      <!-- Calendar/List View Toggle -->
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:1rem;flex-wrap:wrap;gap:0.75rem;">
+        <div class="planner-view-toggle">
+          <button type="button" class="planner-view-btn active" id="viewCalendar"><i class="ph ph-calendar-blank"></i> Calendar</button>
+          <button type="button" class="planner-view-btn" id="viewList"><i class="ph ph-list"></i> List</button>
+        </div>
+        <div class="calendar-nav" id="calendarNav">
+          <button type="button" class="cal-nav-btn" id="calPrevMonth"><i class="ph ph-caret-left"></i></button>
+          <span class="cal-month-label" id="calMonthLabel"></span>
+          <button type="button" class="cal-nav-btn" id="calNextMonth"><i class="ph ph-caret-right"></i></button>
+          <button type="button" class="cal-today-btn" id="calToday">Today</button>
+        </div>
+      </div>
+
+
         </div>
         <select id="filterPlatform" class="filter-select">
           <option value="all">All Platforms</option>
@@ -305,7 +320,8 @@
       <div class="empty-state" id="content-empty">
         <i class="ph ph-note-pencil"></i>
         <p>No content in your pipeline yet.</p>
-        <button class="btn btn-secondary" id="addFirstContent">Add Your First Content Idea</button>
+              <div id="calendarGrid" class="calendar-grid"></div>
+<button class="btn btn-secondary" id="addFirstContent">Add Your First Content Idea</button>
       </div>
     </section>
 
@@ -1176,7 +1192,8 @@
 
   <script src="supabase-config.js"></script>
   <script src="script.js"></script>
-  <script src="monetization.js"></script>
+    <script src="monetization.js"></script>
+    <script src="planner-calendar.js"></script>
 </body>
 </html>
 
