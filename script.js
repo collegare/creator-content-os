@@ -985,7 +985,7 @@ if(!document.getElementById('saveMonetBtn'))return;
   h.innerHTML=`<div style="padding:10px 16px;font-size:14px;font-weight:600;color:var(--color-success);margin-bottom:8px;">Total Revenue Tracked: $${total.toLocaleString()}</div>`+data.slice().reverse().map(d=>`<div class="monet-history-item"><div class="monet-history-item-info"><strong>${d.stream}</strong><span>${d.month} ${d.notes?'· '+d.notes:''}</span></div><div class="monet-history-item-amount">$${parseNum(d.amount).toLocaleString()}</div><button class="btn btn-xs btn-ghost" onclick="confirmDelete('${d.id}','monet')" style="margin-left:8px;"><i class="ph ph-trash"></i></button></div>`).join('');
 }
 
-$('saveMonetBtn').addEventListener('click',()=>{
+$('saveMonetBtn')?.addEventListener('click',()=>{
   const amount=$('monetAmount').value.trim();if(!amount){toast('Please enter an amount','error');return;}
   const data=getArr(MONET_KEY);
   const monetEntry={id:genId(),month:$('monetMonth').value,stream:$('monetStream').value,amount,notes:$('monetNotes').value.trim(),date:new Date().toISOString()};
@@ -1002,7 +1002,7 @@ if(!document.getElementById('monetRoadmap'))return;
   'Rising Creator':[{title:'Diversify to 3+ revenue streams',desc:'Don\'t rely on any single income source. Mix brand deals, products, and services.'},{title:'Raise your rates',desc:'With proven engagement, your rates should reflect your value. Research market rates.'},{title:'Launch a signature product or course',desc:'Your audience is ready for a higher-ticket offer ($197-$997).'},{title:'Explore membership or community revenue',desc:'Recurring revenue creates stability. Start with your most engaged followers.'}],
   'Established':[{title:'Build systems and delegate',desc:'Hire an editor, VA, or manager to free up your time for strategy and creation.'},{title:'Negotiate long-term brand partnerships',desc:'Move from one-off posts to quarterly or annual ambassador deals.'},{title:'Scale your product suite',desc:'Create a ladder from free content → low-ticket → mid-ticket → high-ticket.'},{title:'Explore licensing and IP opportunities',desc:'Your content, brand, and audience have value beyond individual posts.'}]};
   const steps=roadmaps[stage]||roadmaps['Early Growth'];
-  $('monetRoadmap').innerHTML=steps.map((s,i)=>`<div class="monet-roadmap-step"><div class="monet-roadmap-num">${i+1}</div><div class="monet-roadmap-content"><h4>${s.title}</h4><p>${s.desc}</p></div></div>`).join('');
+  if($('monetRoadmap')) $('monetRoadmap').innerHTML=steps.map((s,i)=>`<div class="monet-roadmap-step"><div class="monet-roadmap-num">${i+1}</div><div class="monet-roadmap-content"><h4>${s.title}</h4><p>${s.desc}</p></div></div>`).join('');
 }
 
 // ============================================================
@@ -1942,4 +1942,5 @@ async function boot() {
 
 document.addEventListener('DOMContentLoaded', boot);
 if(document.readyState!=='loading') boot();
+
 
