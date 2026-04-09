@@ -1,5 +1,5 @@
 // ================================================================
-// PLANNER CALENDAR MODULE — Adds calendar view to Content Planner
+// PLANNER CALENDAR MODULE v2 — Enhanced calendar + planning view
 // Load AFTER script.js
 // ================================================================
 
@@ -12,6 +12,34 @@ const PlannerCalendar = (() => {
   function getArr(key) {
     try { return JSON.parse(localStorage.getItem(key) || '[]'); } catch(e) { return []; }
   }
+
+  // Updated stages per Maya's request
+  const STAGES = ['Ideation', 'Scripting', 'Filming', 'Editing', 'Posting', 'Complete', 'Archive'];
+
+  const STATUS_COLORS = {
+    'Ideation':  { bg: '#FFF4E6', border: '#E8912D', text: '#B5630A', dot: '#E8912D' },
+    'Scripting': { bg: '#FFF8E1', border: '#D4A017', text: '#8B6914', dot: '#D4A017' },
+    'Filming':   { bg: '#FDE8E8', border: '#D94F4F', text: '#A33030', dot: '#D94F4F' },
+    'Editing':   { bg: '#F0E6FF', border: '#8B5CF6', text: '#5B21B6', dot: '#8B5CF6' },
+    'Posting':   { bg: '#E0F2FE', border: '#3B82F6', text: '#1D4ED8', dot: '#3B82F6' },
+    'Complete':  { bg: '#DCFCE7', border: '#22C55E', text: '#15803D', dot: '#22C55E' },
+    'Archive':   { bg: '#F1F1F1', border: '#9CA3AF', text: '#6B7280', dot: '#9CA3AF' },
+    // Legacy mappings
+    'Idea':      { bg: '#FFF4E6', border: '#E8912D', text: '#B5630A', dot: '#E8912D' },
+    'Scheduled': { bg: '#E0F2FE', border: '#3B82F6', text: '#1D4ED8', dot: '#3B82F6' },
+    'Posted':    { bg: '#DCFCE7', border: '#22C55E', text: '#15803D', dot: '#22C55E' },
+    'Reviewing': { bg: '#F1F1F1', border: '#9CA3AF', text: '#6B7280', dot: '#9CA3AF' }
+  };
+
+  const PLATFORM_ICONS = {
+    'Instagram': 'ph-instagram-logo',
+    'TikTok': 'ph-tiktok-logo',
+    'YouTube': 'ph-youtube-logo',
+    'LinkedIn': 'ph-linkedin-logo',
+    'Twitter/X': 'ph-x-logo',
+    'Pinterest': 'ph-pinterest-logo',
+    'Blog': 'ph-article'
+  };
 
   function init() {
     if (initialized) { render(); return; }
@@ -44,21 +72,37 @@ const PlannerCalendar = (() => {
     const calGrid = document.getElementById('calendarGrid');
     const listGrid = document.getElementById('content-grid');
     const calNav = document.getElementById('calendarNav');
+    const calLegend = document.getElementById('calendarLegend');
     if (calGrid) calGrid.style.display = viewMode === 'calendar' ? 'grid' : 'none';
     if (listGrid) listGrid.style.display = viewMode === 'list' ? 'grid' : 'none';
     if (calNav) calNav.style.display = viewMode === 'calendar' ? 'flex' : 'none';
+    if (calLegend) calLegend.style.display = viewMode === 'calendar' ? 'flex' : 'none';
   }
 
   function render() {
     updateViewToggle();
     if (viewMode === 'calendar') {
       renderCalendar();
+      renderStageLegend();
     }
-    // List view is handled by the original renderContentGrid in script.js
   }
 
   function getItemDate(item) {
     return item.postDate || item.filmDate || item.editDate || null;
+  }
+
+  function renderStageLegend() {
+    const legend = document.getElementById('calendarLegend');
+    if (!legend) return;
+    legend.innerHTML = STAGES.map(stage => {
+      const c = STATUS_COLORS[stage];
+      const items = getArr(CONTENT_KEY).filter(i => i.status === stage);
+      return `<div class="legend-item">
+        <span class="legend-dot" style="background:${c.dot}"></span>
+        <span class="legend-label">${stage}</span>
+        <span class="legend-count">${items.length}</span>
+      </div>`;
+    }).join('');
   }
 
   function renderCalendar() {
@@ -88,7 +132,7 @@ const PlannerCalendar = (() => {
     });
 
     // Calendar math
-    const firstDay = new Date(year, month, 1).getDay(); // 0=Sun
+    const firstDay = new Date(year, month, 1).getDay();
     const daysInMonth = new Date(year, month + 1, 0).getDate();
     const daysInPrevMonth = new Date(year, month, 0).getDate();
 
@@ -106,10 +150,7 @@ const PlannerCalendar = (() => {
       const prevMonthDate = new Date(year, month - 1, day);
       const dateStr = prevMonthDate.toISOString().split('T')[0];
       const dayItems = dateMap[dateStr] || [];
-      html += `<div class="cal-day cal-day-outside">
-        <div class="cal-day-number">${day}</div>
-        ${renderDayItems(dayItems)}
-      </div>`;
+      html += buildDayCell(day, dateStr, dayItems, true, false);
     }
 
     // Current month days
@@ -117,30 +158,25 @@ const PlannerCalendar = (() => {
       const dateStr = `${year}-${String(month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
       const isToday = dateStr === todayStr;
       const dayItems = dateMap[dateStr] || [];
-      html += `<div class="cal-day${isToday ? ' cal-day-today' : ''}">
-        <div class="cal-day-number${isToday ? ' today-marker' : ''}">${day}</div>
-        ${renderDayItems(dayItems)}
-      </div>`;
+      html += buildDayCell(day, dateStr, dayItems, false, isToday);
     }
 
-    // Fill remaining cells to complete the grid (6 rows)
+    // Fill remaining cells
     const totalCells = firstDay + daysInMonth;
     const remaining = (7 - (totalCells % 7)) % 7;
     for (let i = 1; i <= remaining; i++) {
       const nextMonthDate = new Date(year, month + 1, i);
       const dateStr = nextMonthDate.toISOString().split('T')[0];
       const dayItems = dateMap[dateStr] || [];
-      html += `<div class="cal-day cal-day-outside">
-        <div class="cal-day-number">${i}</div>
-        ${renderDayItems(dayItems)}
-      </div>`;
+      html += buildDayCell(i, dateStr, dayItems, true, false);
     }
 
     grid.innerHTML = html;
 
     // Wire up click handlers for items
     grid.querySelectorAll('.cal-item').forEach(el => {
-      el.addEventListener('click', () => {
+      el.addEventListener('click', (e) => {
+        e.stopPropagation();
         const id = el.dataset.id;
         if (id && typeof window.editContent === 'function') {
           window.editContent(id);
@@ -148,45 +184,50 @@ const PlannerCalendar = (() => {
       });
     });
 
-    // Update pipeline stats
-    renderPipelineStats(items);
+    // Wire up click on empty day to add content with pre-filled date
+    grid.querySelectorAll('.cal-day[data-date]').forEach(el => {
+      el.addEventListener('click', (e) => {
+        if (e.target.closest('.cal-item')) return;
+        const date = el.dataset.date;
+        if (date && !el.classList.contains('cal-day-outside') && typeof window.openContentModal === 'function') {
+          window.openContentModal(null, date);
+        }
+      });
+    });
 
     // Handle empty state
     const empty = document.getElementById('content-empty');
     if (empty) empty.style.display = items.length === 0 ? 'block' : 'none';
   }
 
-  const STATUS_COLORS = {
-    'Idea': '#9b8b7e',
-    'Scripting': '#c4841d',
-    'Filming': '#cd5c5c',
-    'Editing': '#9370db',
-    'Scheduled': '#4682b4',
-    'Posted': '#22863a',
-    'Reviewing': '#6b8e23'
-  };
+  function buildDayCell(day, dateStr, items, isOutside, isToday) {
+    const classes = ['cal-day'];
+    if (isOutside) classes.push('cal-day-outside');
+    if (isToday) classes.push('cal-day-today');
 
-  const PLATFORM_ICONS = {
-    'Instagram': 'ph-instagram-logo',
-    'TikTok': 'ph-tiktok-logo',
-    'YouTube': 'ph-youtube-logo',
-    'LinkedIn': 'ph-linkedin-logo',
-    'Twitter/X': 'ph-x-logo',
-    'Pinterest': 'ph-pinterest-logo',
-    'Blog': 'ph-article'
-  };
+    let html = `<div class="${classes.join(' ')}" data-date="${dateStr}">`;
+    html += `<div class="cal-day-header">`;
+    html += `<span class="cal-day-number${isToday ? ' today-marker' : ''}">${day}</span>`;
+    if (!isOutside && items.length === 0) {
+      html += `<span class="cal-add-hint"><i class="ph ph-plus"></i></span>`;
+    }
+    html += `</div>`;
+    html += renderDayItems(items);
+    html += `</div>`;
+    return html;
+  }
 
   function renderDayItems(items) {
     if (!items.length) return '';
     const maxShow = 3;
     let html = '<div class="cal-day-items">';
     items.slice(0, maxShow).forEach(item => {
-      const color = STATUS_COLORS[item.status] || '#9b8b7e';
+      const colors = STATUS_COLORS[item.status] || STATUS_COLORS['Ideation'];
       const icon = PLATFORM_ICONS[item.platform] || 'ph-note';
-      const title = item.idea.length > 28 ? item.idea.substring(0, 28) + '...' : item.idea;
-      html += `<div class="cal-item" data-id="${item.id}" style="border-left-color:${color};" title="${item.idea} (${item.status})">
-        <i class="ph ${icon} cal-item-icon"></i>
-        <span class="cal-item-title">${title}</span>
+      const title = item.idea.length > 22 ? item.idea.substring(0, 22) + '...' : item.idea;
+      html += `<div class="cal-item" data-id="${item.id}" style="background:${colors.bg};border-left:3px solid ${colors.border};" title="${item.idea} \u2014 ${item.status}">
+        <i class="ph ${icon} cal-item-icon" style="color:${colors.border}"></i>
+        <span class="cal-item-title" style="color:${colors.text}">${title}</span>
       </div>`;
     });
     if (items.length > maxShow) {
@@ -196,18 +237,7 @@ const PlannerCalendar = (() => {
     return html;
   }
 
-  function renderPipelineStats(items) {
-    const ps = document.getElementById('pipelineStats');
-    if (!ps) return;
-    const statusCounts = {};
-    items.forEach(i => { statusCounts[i.status] = (statusCounts[i.status] || 0) + 1; });
-    ps.innerHTML = Object.entries(statusCounts).map(([s, c]) => {
-      const color = STATUS_COLORS[s] || '#9b8b7e';
-      return `<span class="pipeline-stat" style="border-left:3px solid ${color};padding-left:8px;">${s}: ${c}</span>`;
-    }).join('');
-  }
-
-  return { init, render };
+  return { init, render, STAGES, STATUS_COLORS };
 })();
 
 // Hook into tab switching to initialize calendar when planner tab is shown
