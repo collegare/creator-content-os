@@ -976,6 +976,7 @@ function renderMonetization(){
 }
 
 function renderMonetHistory(){
+if(!document.getElementById('saveMonetBtn'))return;
   const data=getArr(MONET_KEY);const h=$('monetHistory'), e=$('monet-empty');
   if(!$('monetMonth').value)$('monetMonth').value=new Date().toISOString().substring(0,7);
   if(!data.length){h.innerHTML='';e.style.display='block';return;}
@@ -995,6 +996,7 @@ $('saveMonetBtn').addEventListener('click',()=>{
 });
 
 function renderMonetRoadmap(stage){
+if(!document.getElementById('monetRoadmap'))return;
   const roadmaps={'Pre-launch':[{title:'Create 3-5 pieces of content per week',desc:'Build your content library and find your voice before monetizing.'},{title:'Set up affiliate links for tools you use',desc:'The easiest first revenue stream — no audience size requirement.'},{title:'Package one skill as a service',desc:'Offer 1:1 coaching, consulting, or freelance work based on your expertise.'},{title:'Build a media kit',desc:'Even at 0 followers, a strong media kit shows brands you\'re serious.'}],
   'Early Growth':[{title:'Launch a low-ticket digital product ($27-$97)',desc:'Templates, guides, or mini-courses that solve a specific problem.'},{title:'Pitch 5 brands per month',desc:'Start with gifted collaborations, then negotiate paid deals as your numbers grow.'},{title:'Optimize affiliate income',desc:'Create dedicated content around your affiliate products to drive conversions.'},{title:'Build your email list',desc:'Email subscribers are 10x more likely to buy than social followers.'}],
   'Rising Creator':[{title:'Diversify to 3+ revenue streams',desc:'Don\'t rely on any single income source. Mix brand deals, products, and services.'},{title:'Raise your rates',desc:'With proven engagement, your rates should reflect your value. Research market rates.'},{title:'Launch a signature product or course',desc:'Your audience is ready for a higher-ticket offer ($197-$997).'},{title:'Explore membership or community revenue',desc:'Recurring revenue creates stability. Start with your most engaged followers.'}],
@@ -1940,3 +1942,4 @@ async function boot() {
 
 document.addEventListener('DOMContentLoaded', boot);
 if(document.readyState!=='loading') boot();
+
