@@ -1,0 +1,273 @@
+/* ===== Planner Calendar View ===== */
+
+.planner-view-toggle {
+  display: flex;
+  gap: 0;
+  border: 1px solid #e6d5c3;
+  border-radius: 6px;
+  overflow: hidden;
+}
+
+.planner-view-btn {
+  padding: 0.5rem 1rem;
+  background: #fff;
+  border: none;
+  color: #6b5a47;
+  font-size: 0.875rem;
+  font-weight: 600;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  transition: all 0.2s;
+  font-family: inherit;
+}
+
+.planner-view-btn:not(:last-child) {
+  border-right: 1px solid #e6d5c3;
+}
+
+.planner-view-btn:hover {
+  background: #fdf6ef;
+}
+
+.planner-view-btn.active {
+  background: #6B2D0F;
+  color: #fff;
+}
+
+/* Calendar Navigation */
+.calendar-nav {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  margin-bottom: 1.5rem;
+}
+
+.cal-nav-btn {
+  background: #fff;
+  border: 1px solid #e6d5c3;
+  border-radius: 6px;
+  width: 36px;
+  height: 36px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  color: #6b5a47;
+  transition: all 0.2s;
+  font-size: 1rem;
+}
+
+.cal-nav-btn:hover {
+  border-color: #d4b8a3;
+  background: #fdf6ef;
+  color: #6B2D0F;
+}
+
+.cal-month-label {
+  font-size: 1.15rem;
+  font-weight: 700;
+  color: #3a2a1a;
+  min-width: 180px;
+  text-align: center;
+}
+
+.cal-today-btn {
+  background: #fff;
+  border: 1px solid #e6d5c3;
+  border-radius: 6px;
+  padding: 0.4rem 0.75rem;
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: #6b5a47;
+  cursor: pointer;
+  font-family: inherit;
+  transition: all 0.2s;
+}
+
+.cal-today-btn:hover {
+  border-color: #6B2D0F;
+  color: #6B2D0F;
+}
+
+/* Calendar Grid */
+.calendar-grid {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  border: 1px solid #e6d5c3;
+  border-radius: 10px;
+  overflow: hidden;
+  background: #fff;
+}
+
+.cal-header-cell {
+  padding: 0.6rem 0.5rem;
+  text-align: center;
+  font-size: 0.75rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: #9b8b7e;
+  background: #fdf6ef;
+  border-bottom: 1px solid #e6d5c3;
+}
+
+.cal-day {
+  min-height: 110px;
+  padding: 0.4rem;
+  border-right: 1px solid #f0e6d9;
+  border-bottom: 1px solid #f0e6d9;
+  background: #fff;
+  transition: background 0.15s;
+  position: relative;
+}
+
+.cal-day:nth-child(7n) {
+  border-right: none;
+}
+
+.cal-day:hover {
+  background: #fefaf6;
+}
+
+.cal-day-outside {
+  background: #faf8f5;
+}
+
+.cal-day-outside .cal-day-number {
+  color: #c9bfb3;
+}
+
+.cal-day-today {
+  background: #fdf6ef;
+}
+
+.cal-day-number {
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: #6b5a47;
+  margin-bottom: 0.35rem;
+  padding: 0 0.15rem;
+}
+
+.cal-day-number.today-marker {
+  background: #6B2D0F;
+  color: #fff;
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.75rem;
+}
+
+/* Calendar Items */
+.cal-day-items {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.cal-item {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 3px 6px;
+  background: #fdf6ef;
+  border-left: 3px solid #9b8b7e;
+  border-radius: 3px;
+  cursor: pointer;
+  transition: all 0.15s;
+  overflow: hidden;
+}
+
+.cal-item:hover {
+  background: #f5ebe0;
+  box-shadow: 0 1px 3px rgba(107, 45, 15, 0.1);
+}
+
+.cal-item-icon {
+  font-size: 0.7rem;
+  color: #9b8b7e;
+  flex-shrink: 0;
+}
+
+.cal-item-title {
+  font-size: 0.7rem;
+  font-weight: 500;
+  color: #3a2a1a;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  line-height: 1.3;
+}
+
+.cal-item-more {
+  font-size: 0.65rem;
+  color: #9b8b7e;
+  padding: 2px 6px;
+  font-weight: 600;
+}
+
+/* Pipeline stats with color indicators */
+.pipeline-stats {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  margin-bottom: 1rem;
+}
+
+.pipeline-stat {
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: #6b5a47;
+}
+
+/* Responsive: Tablet */
+@media (max-width: 1024px) {
+  .cal-day {
+    min-height: 90px;
+  }
+  .cal-item-title {
+    font-size: 0.65rem;
+  }
+}
+
+/* Responsive: Mobile */
+@media (max-width: 640px) {
+  .calendar-grid {
+    font-size: 0.8rem;
+  }
+  .cal-day {
+    min-height: 60px;
+    padding: 0.25rem;
+  }
+  .cal-day-number {
+    font-size: 0.7rem;
+  }
+  .cal-item {
+    padding: 2px 4px;
+  }
+  .cal-item-title {
+    display: none;
+  }
+  .cal-item-icon {
+    font-size: 0.65rem;
+  }
+  .cal-header-cell {
+    font-size: 0.65rem;
+    padding: 0.4rem 0.25rem;
+  }
+  .calendar-nav {
+    flex-wrap: wrap;
+  }
+  .planner-view-toggle {
+    width: 100%;
+  }
+  .planner-view-btn {
+    flex: 1;
+    justify-content: center;
+  }
+}
