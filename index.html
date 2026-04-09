@@ -320,7 +320,8 @@
       <div class="empty-state" id="content-empty">
         <i class="ph ph-note-pencil"></i>
         <p>No content in your pipeline yet.</p>
-              <div id="calendarGrid" class="calendar-grid"></div>
+              <div id="calendarLegend" class="calendar-legend"></div>
+        <div id="calendarGrid" class="calendar-grid"></div>
 <button class="btn btn-secondary" id="addFirstContent">Add Your First Content Idea</button>
       </div>
     </section>
@@ -1041,7 +1042,7 @@
         <div class="form-row three-col">
           <div class="form-group">
             <label for="contentStatus">Status *</label>
-            <select id="contentStatus" required><option value="Idea">Idea</option><option value="Scripting">Scripting</option><option value="Filming">Filming</option><option value="Editing">Editing</option><option value="Scheduled">Scheduled</option><option value="Posted">Posted</option><option value="Reviewing">Reviewing</option></select>
+            <select id="contentStatus" required><option value="Ideation">Ideation</option><option value="Scripting">Scripting</option><option value="Filming">Filming</option><option value="Editing">Editing</option><option value="Posting">Posting</option><option value="Complete">Complete</option><option value="Archive">Archive</option></select>
           </div>
           <div class="form-group">
             <label for="contentType">Organic or Brand</label>
@@ -1052,6 +1053,11 @@
             <input type="text" id="contentCTA" placeholder="e.g. Save this for later" />
           </div>
         </div>
+                <div class="form-section-title"><i class="ph ph-pen-nib"></i> Creative Planning</div>
+        <div class="form-group full-width"><label for="contentHookText">Hook / Opening Line</label><textarea id="contentHookText" rows="2" placeholder="What grabs attention in the first 3 seconds?"></textarea></div>
+        <div class="form-group full-width"><label for="contentScriptNotes">Script / Talking Points</label><textarea id="contentScriptNotes" rows="3" placeholder="Outline your script, key points, or talking points..."></textarea></div>
+        <div class="form-group full-width"><label for="contentInspoLink">Inspiration / Reference Link</label><input type="url" id="contentInspoLink" placeholder="https://... link to a reference video or post" /></div>
+        <div class="form-section-title"><i class="ph ph-calendar-check"></i> Schedule</div>
         <div class="form-row three-col">
           <div class="form-group"><label for="contentFilmDate">Filming Date</label><input type="date" id="contentFilmDate" /></div>
           <div class="form-group"><label for="contentEditDate">Editing Date</label><input type="date" id="contentEditDate" /></div>
