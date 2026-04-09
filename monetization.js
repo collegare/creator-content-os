@@ -20,8 +20,7 @@ const MonetizationModule = (() => {
   };
 
   let currentMonthFilter = 6;
-  let barChart = null;
-  let trendChart = null;
+  let lineChart = null;
   let initialized = false;
 
   function init() {
@@ -45,12 +44,19 @@ const MonetizationModule = (() => {
   }
 
   function setupListeners() {
+    // Revenue form — use button click instead of form submit for reliability
+    const logBtn = document.getElementById('logRevenueBtn');
+    if (logBtn) logBtn.addEventListener('click', e => { e.preventDefault(); logRevenue(); });
+
+    // Also prevent form submission entirely
     const form = document.getElementById('logRevenueForm');
     if (form) form.addEventListener('submit', e => { e.preventDefault(); logRevenue(); });
 
-    const genBtn = document.getElementById('generateRoadmapBtn');
-    if (genBtn) genBtn.addEventListener('click', generateRoadmap);
+    // Roadmap question flow
+    const startRoadmapBtn = document.getElementById('startRoadmapBtn');
+    if (startRoadmapBtn) startRoadmapBtn.addEventListener('click', startRoadmapFlow);
 
+    // Chart filter buttons
     document.querySelectorAll('.monet-chart-filters .filter-btn').forEach(btn => {
       btn.addEventListener('click', e => {
         document.querySelectorAll('.monet-chart-filters .filter-btn').forEach(b => b.classList.remove('active'));
@@ -117,82 +123,83 @@ const MonetizationModule = (() => {
     }
   }
 
-  // ---- Charts ----
+  // ---- Single Line Chart ----
 
   function renderCharts() {
-    const barEl = document.getElementById('revenueBarChart');
-    const trendEl = document.getElementById('revenueTrendChart');
-    if (!barEl || !trendEl) return;
-    // Only render if visible
-    if (barEl.offsetParent === null) return;
+    const chartEl = document.getElementById('revenueLineChart');
+    if (!chartEl) return;
+    if (chartEl.offsetParent === null) return;
 
     const entries = getData();
     const cutoff = new Date();
     cutoff.setMonth(cutoff.getMonth() - currentMonthFilter);
 
     const filtered = entries.filter(e => new Date(e.date) >= cutoff);
-    const byMonthType = {}, typeTotals = {};
+    const byMonth = {};
 
     filtered.forEach(e => {
-      const m = (e.date||'').substring(0,7), t = e.type||'Other', a = parseFloat(e.amount)||0;
-      if (!byMonthType[m]) byMonthType[m] = {};
-      byMonthType[m][t] = (byMonthType[m][t]||0) + a;
-      typeTotals[t] = (typeTotals[t]||0) + a;
+      const m = (e.date||'').substring(0,7);
+      const a = parseFloat(e.amount)||0;
+      byMonth[m] = (byMonth[m]||0) + a;
     });
 
-    const months = Object.keys(byMonthType).sort();
-    const types = Object.keys(REVENUE_TYPES).filter(t => typeTotals[t]);
-    const labels = months.map(m => { const [y,mo]=m.split('-'); return new Date(y,mo-1).toLocaleDateString('en-US',{month:'short'}); });
+    // Fill in missing months so the line is continuous
+    const months = [];
+    const now = new Date();
+    for (let i = currentMonthFilter - 1; i >= 0; i--) {
+      const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
+      const key = d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0');
+      months.push(key);
+    }
 
-    // Stacked bar
-    if (barChart) barChart.destroy();
-    barChart = new Chart(barEl.getContext('2d'), {
-      type: 'bar',
-      data: {
-        labels,
-        datasets: types.map(t => ({
-          label: t,
-          data: months.map(m => byMonthType[m][t]||0),
-          backgroundColor: REVENUE_TYPES[t],
-          borderWidth: 0
-        }))
-      },
-      options: {
-        responsive: true, maintainAspectRatio: false,
-        scales: {
-          x: { stacked: true, grid:{display:false}, ticks:{color:'#3a2a1a'} },
-          y: { stacked: true, ticks:{color:'#3a2a1a', callback:v=>'$'+v.toLocaleString()}, grid:{color:'#e6d5c3'} }
-        },
-        plugins: {
-          legend: { position:'top', labels:{color:'#3a2a1a',usePointStyle:true,padding:15} },
-          tooltip: { callbacks: { label: ctx => ctx.dataset.label+': '+fmt(ctx.parsed.y) } }
-        }
-      }
+    const labels = months.map(m => {
+      const [y, mo] = m.split('-');
+      return new Date(y, mo-1).toLocaleDateString('en-US', {month:'short', year:'2-digit'});
     });
+    const data = months.map(m => byMonth[m] || 0);
 
-    // Trend line
-    const totals = months.map(m => types.reduce((s,t) => s+(byMonthType[m][t]||0), 0));
-    if (trendChart) trendChart.destroy();
-    trendChart = new Chart(trendEl.getContext('2d'), {
+    if (lineChart) lineChart.destroy();
+    lineChart = new Chart(chartEl.getContext('2d'), {
       type: 'line',
       data: {
         labels,
         datasets: [{
-          label: 'Total Revenue',
-          data: totals,
+          label: 'Revenue',
+          data,
           borderColor: '#6B2D0F',
-          backgroundColor: 'rgba(107,45,15,0.05)',
-          borderWidth: 2, fill: true, tension: 0.4,
-          pointBackgroundColor: '#6B2D0F', pointBorderColor: '#fff', pointBorderWidth: 2, pointRadius: 4
+          backgroundColor: 'rgba(107,45,15,0.08)',
+          borderWidth: 2.5,
+          fill: true,
+          tension: 0.35,
+          pointBackgroundColor: '#6B2D0F',
+          pointBorderColor: '#fff',
+          pointBorderWidth: 2,
+          pointRadius: 5,
+          pointHoverRadius: 7
         }]
       },
       options: {
-        responsive: true, maintainAspectRatio: false,
+        responsive: true,
+        maintainAspectRatio: false,
         scales: {
-          x: { grid:{display:false}, ticks:{color:'#3a2a1a',font:{size:11}} },
-          y: { ticks:{color:'#3a2a1a',font:{size:11},callback:v=>fmt(v)}, grid:{color:'#e6d5c3'} }
+          x: { grid: {display:false}, ticks: {color:'#3a2a1a', font:{size:11}} },
+          y: {
+            beginAtZero: true,
+            ticks: { color:'#3a2a1a', font:{size:11}, callback: v => '$' + v.toLocaleString() },
+            grid: { color:'#e6d5c3' }
+          }
         },
-        plugins: { legend:{display:false}, tooltip:{ callbacks:{label:ctx=>'Total: '+fmt(ctx.parsed.y)} } }
+        plugins: {
+          legend: { display: false },
+          tooltip: {
+            backgroundColor: '#3a2a1a',
+            titleFont: {size:13},
+            bodyFont: {size:12},
+            padding: 10,
+            callbacks: { label: ctx => 'Revenue: ' + fmt(ctx.parsed.y) }
+          }
+        },
+        interaction: { intersect: false, mode: 'index' }
       }
     });
   }
@@ -200,18 +207,31 @@ const MonetizationModule = (() => {
   // ---- Revenue Logging ----
 
   function logRevenue() {
-    const date = document.getElementById('revenueDate').value;
-    const type = document.getElementById('revenueType').value;
-    const amount = parseFloat(document.getElementById('revenueAmount').value);
-    const notes = document.getElementById('revenueNotes').value;
-    if (!date || !type || !amount) return;
+    const dateEl = document.getElementById('revenueDate');
+    const typeEl = document.getElementById('revenueType');
+    const amountEl = document.getElementById('revenueAmount');
+    const notesEl = document.getElementById('revenueNotes');
+
+    const date = dateEl ? dateEl.value : '';
+    const type = typeEl ? typeEl.value : '';
+    const amount = amountEl ? parseFloat(amountEl.value) : 0;
+    const notes = notesEl ? notesEl.value : '';
+
+    if (!date || !type || !amount || amount <= 0) {
+      if (typeof toast === 'function') toast('Please fill in date, type, and amount', 'error');
+      return;
+    }
 
     const data = getData();
     data.push({ id: uid(), date, type, amount, notes });
     saveData(data);
 
-    document.getElementById('logRevenueForm').reset();
+    // Reset form fields manually instead of form.reset()
+    if (amountEl) amountEl.value = '';
+    if (notesEl) notesEl.value = '';
+    if (typeEl) typeEl.selectedIndex = 0;
     setDefaultDate();
+
     renderAll();
     if (typeof toast === 'function') toast('Revenue logged!');
   }
@@ -243,29 +263,195 @@ const MonetizationModule = (() => {
     });
   }
 
-  // ---- AI Roadmap ----
+  // ---- AI Roadmap — Interactive Question Flow ----
 
-  async function generateRoadmap() {
-    const settings = localStorage.getItem(SETTINGS_KEY);
-    let profile;
-    try { profile = JSON.parse(settings); } catch(e) {}
-    if (!profile || !profile.niche) {
-      if (typeof toast === 'function') toast('Please complete your Creator Profile in Settings first', 'error');
-      else alert('Please complete your Creator Profile in Settings first');
+  const ROADMAP_QUESTIONS = [
+    {
+      id: 'revenueGoal',
+      question: 'What is your monthly revenue goal?',
+      subtitle: 'Dream big — where do you want to be in 6-12 months?',
+      type: 'select',
+      options: ['$500/mo', '$1,000/mo', '$2,500/mo', '$5,000/mo', '$10,000/mo', '$25,000+/mo']
+    },
+    {
+      id: 'niche',
+      question: 'What is your niche or area of expertise?',
+      subtitle: 'The topic or industry you create content about.',
+      type: 'text',
+      placeholder: 'e.g., Fitness coaching, personal finance, tech reviews, cooking...'
+    },
+    {
+      id: 'audience',
+      question: 'Who is your ideal audience?',
+      subtitle: 'Think about who benefits most from your content.',
+      type: 'text',
+      placeholder: 'e.g., Beginner entrepreneurs ages 25-35, busy moms, college students...'
+    },
+    {
+      id: 'platforms',
+      question: 'What platforms are you most active on?',
+      subtitle: 'Select all that apply.',
+      type: 'multi',
+      options: ['Instagram', 'TikTok', 'YouTube', 'X / Twitter', 'LinkedIn', 'Blog/Newsletter', 'Podcast']
+    },
+    {
+      id: 'strengths',
+      question: 'What are your biggest strengths as a creator?',
+      subtitle: 'What do you enjoy doing and what comes naturally to you?',
+      type: 'text',
+      placeholder: 'e.g., Storytelling, video editing, teaching, community building...'
+    },
+    {
+      id: 'offering',
+      question: 'What knowledge or skills could you package into a product?',
+      subtitle: 'Think about what your audience asks you about most.',
+      type: 'text',
+      placeholder: 'e.g., Meal planning templates, coding tutorials, workout programs...'
+    },
+    {
+      id: 'currentRevenue',
+      question: 'What does your current monetization look like?',
+      subtitle: 'No judgment — just a starting point.',
+      type: 'select',
+      options: ['Not monetizing yet', 'Under $100/mo', '$100-$500/mo', '$500-$2,000/mo', '$2,000-$5,000/mo', '$5,000+/mo']
+    },
+    {
+      id: 'biggestChallenge',
+      question: 'What is your biggest monetization challenge right now?',
+      subtitle: 'What feels like the main blocker?',
+      type: 'select',
+      options: [
+        "I don't know where to start",
+        "I don't have enough audience yet",
+        "I don't know what to sell",
+        "I struggle with pricing",
+        "I can't stay consistent",
+        "I need better systems/tools",
+        "Other"
+      ]
+    }
+  ];
+
+  let roadmapStep = 0;
+  let roadmapAnswers = {};
+
+  function startRoadmapFlow() {
+    roadmapStep = 0;
+    roadmapAnswers = {};
+    showRoadmapQuestion();
+  }
+
+  function showRoadmapQuestion() {
+    const container = document.getElementById('roadmapQuestionFlow');
+    const initial = document.getElementById('roadmapInitial');
+    const results = document.getElementById('roadmapResults');
+    const loading = document.getElementById('roadmapLoading');
+
+    if (initial) initial.style.display = 'none';
+    if (results) results.style.display = 'none';
+    if (loading) loading.style.display = 'none';
+    if (!container) return;
+
+    container.style.display = 'block';
+
+    if (roadmapStep >= ROADMAP_QUESTIONS.length) {
+      generateRoadmap();
       return;
     }
 
-    document.getElementById('roadmapInitial').style.display = 'none';
-    document.getElementById('roadmapLoading').style.display = 'flex';
-    document.getElementById('roadmapResults').style.display = 'none';
+    const q = ROADMAP_QUESTIONS[roadmapStep];
+    const progress = Math.round(((roadmapStep) / ROADMAP_QUESTIONS.length) * 100);
+
+    let inputHtml = '';
+    if (q.type === 'text') {
+      inputHtml = `<input type="text" id="roadmapInput" class="roadmap-input" placeholder="${q.placeholder || ''}" autocomplete="off">`;
+    } else if (q.type === 'select') {
+      inputHtml = `<div class="roadmap-options">${q.options.map((opt, i) =>
+        `<button type="button" class="roadmap-option-btn" data-value="${opt}">${opt}</button>`
+      ).join('')}</div>`;
+    } else if (q.type === 'multi') {
+      inputHtml = `<div class="roadmap-options multi">${q.options.map((opt, i) =>
+        `<button type="button" class="roadmap-option-btn" data-value="${opt}">${opt}</button>`
+      ).join('')}</div>
+      <button type="button" class="btn btn-primary roadmap-next-btn" id="roadmapMultiNext" style="margin-top:12px;">Continue</button>`;
+    }
+
+    container.innerHTML = `
+      <div class="roadmap-question-card">
+        <div class="roadmap-progress-bar"><div class="roadmap-progress-fill" style="width:${progress}%"></div></div>
+        <div class="roadmap-step-label">Question ${roadmapStep + 1} of ${ROADMAP_QUESTIONS.length}</div>
+        <h3 class="roadmap-question-text">${q.question}</h3>
+        <p class="roadmap-question-subtitle">${q.subtitle}</p>
+        ${inputHtml}
+        ${q.type === 'text' ? '<button type="button" class="btn btn-primary roadmap-next-btn" id="roadmapTextNext">Next</button>' : ''}
+        ${roadmapStep > 0 ? '<button type="button" class="roadmap-back-btn" id="roadmapBack"><i class="ph ph-arrow-left"></i> Back</button>' : ''}
+      </div>
+    `;
+
+    // Event listeners
+    if (q.type === 'select') {
+      container.querySelectorAll('.roadmap-option-btn').forEach(btn => {
+        btn.addEventListener('click', () => {
+          roadmapAnswers[q.id] = btn.dataset.value;
+          roadmapStep++;
+          showRoadmapQuestion();
+        });
+      });
+    } else if (q.type === 'multi') {
+      const selected = new Set();
+      container.querySelectorAll('.roadmap-option-btn').forEach(btn => {
+        btn.addEventListener('click', () => {
+          const val = btn.dataset.value;
+          if (selected.has(val)) { selected.delete(val); btn.classList.remove('selected'); }
+          else { selected.add(val); btn.classList.add('selected'); }
+        });
+      });
+      const nextBtn = document.getElementById('roadmapMultiNext');
+      if (nextBtn) nextBtn.addEventListener('click', () => {
+        roadmapAnswers[q.id] = Array.from(selected);
+        roadmapStep++;
+        showRoadmapQuestion();
+      });
+    } else if (q.type === 'text') {
+      const input = document.getElementById('roadmapInput');
+      const nextBtn = document.getElementById('roadmapTextNext');
+      if (nextBtn) nextBtn.addEventListener('click', () => {
+        if (input && input.value.trim()) {
+          roadmapAnswers[q.id] = input.value.trim();
+          roadmapStep++;
+          showRoadmapQuestion();
+        }
+      });
+      if (input) input.addEventListener('keydown', e => {
+        if (e.key === 'Enter' && input.value.trim()) {
+          roadmapAnswers[q.id] = input.value.trim();
+          roadmapStep++;
+          showRoadmapQuestion();
+        }
+      });
+      // Auto-focus
+      setTimeout(() => { if (input) input.focus(); }, 100);
+    }
+
+    const backBtn = document.getElementById('roadmapBack');
+    if (backBtn) backBtn.addEventListener('click', () => { roadmapStep--; showRoadmapQuestion(); });
+  }
+
+  // ---- AI Roadmap Generation ----
+
+  async function generateRoadmap() {
+    const container = document.getElementById('roadmapQuestionFlow');
+    const loading = document.getElementById('roadmapLoading');
+    if (container) container.style.display = 'none';
+    if (loading) loading.style.display = 'flex';
 
     try {
       const resp = await fetch('/api/ai/roadmap', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ profile, revenueData: getData() })
+        body: JSON.stringify({ answers: roadmapAnswers, revenueData: getData() })
       });
-      if (!resp.ok) throw new Error('Server error \u2014 ' + resp.status);
+      if (!resp.ok) throw new Error('Server error — ' + resp.status);
       const roadmap = await resp.json();
       if (roadmap.error) throw new Error(roadmap.error);
       localStorage.setItem(ROADMAP_KEY, JSON.stringify(roadmap));
@@ -274,8 +460,10 @@ const MonetizationModule = (() => {
       console.error('Roadmap error:', err);
       if (typeof toast === 'function') toast('Error: ' + err.message, 'error');
       else alert('Error generating roadmap: ' + err.message);
-      document.getElementById('roadmapInitial').style.display = 'flex';
-      document.getElementById('roadmapLoading').style.display = 'none';
+      if (container) container.style.display = 'none';
+      if (loading) loading.style.display = 'none';
+      const initial = document.getElementById('roadmapInitial');
+      if (initial) initial.style.display = 'flex';
     }
   }
 
@@ -287,13 +475,18 @@ const MonetizationModule = (() => {
   }
 
   function showRoadmap(r) {
-    document.getElementById('roadmapInitial').style.display = 'none';
-    document.getElementById('roadmapLoading').style.display = 'none';
+    const initial = document.getElementById('roadmapInitial');
+    const loading = document.getElementById('roadmapLoading');
+    const flow = document.getElementById('roadmapQuestionFlow');
     const el = document.getElementById('roadmapResults');
+    if (initial) initial.style.display = 'none';
+    if (loading) loading.style.display = 'none';
+    if (flow) flow.style.display = 'none';
+    if (!el) return;
     el.style.display = 'block';
 
     let html = `<div class="roadmap-header-actions">
-      <button type="button" class="btn btn-secondary" id="regenerateRoadmapBtn"><i class="ph ph-arrows-clockwise"></i> Regenerate</button>
+      <button type="button" class="btn btn-secondary" id="regenerateRoadmapBtn"><i class="ph ph-arrows-clockwise"></i> Start Over</button>
     </div>`;
 
     if (r.recommendedStreams && r.recommendedStreams.length) {
@@ -337,9 +530,9 @@ const MonetizationModule = (() => {
     }
 
     if (r.monthlyTarget) {
-      html += `<div class="roadmap-section roadmap-target-section"><h4><i class="ph ph-target"></i> Monthly Revenue Target</h4>
+      html += `<div class="roadmap-section roadmap-target-section"><h4><i class="ph ph-target"></i> Your Monthly Revenue Target</h4>
         <div class="roadmap-target-card"><div class="roadmap-target-amount">${fmt(r.monthlyTarget)}</div>
-        <p class="roadmap-target-desc">Realistic target based on your niche and stage</p></div></div>`;
+        <p class="roadmap-target-desc">Realistic target based on your answers and niche</p></div></div>`;
     }
 
     if (r.recommendedTools && r.recommendedTools.length) {
@@ -360,7 +553,8 @@ const MonetizationModule = (() => {
       localStorage.removeItem(ROADMAP_KEY);
       el.innerHTML = '';
       el.style.display = 'none';
-      document.getElementById('roadmapInitial').style.display = 'flex';
+      const initial = document.getElementById('roadmapInitial');
+      if (initial) initial.style.display = 'flex';
     });
   }
 
@@ -370,13 +564,14 @@ const MonetizationModule = (() => {
 // Override old initMonetization so existing script.js calls route here
 function initMonetization() { MonetizationModule.init(); }
 
-// Also handle tab switching \u2014 re-render charts when tab becomes visible
+// Also handle tab switching — call full init (not just renderCharts) to ensure listeners are set up
 const origSwitchTab = window.switchTab;
 if (typeof origSwitchTab === 'function') {
   window.switchTab = function(tab) {
     origSwitchTab(tab);
     if (tab === 'monetization') {
-      setTimeout(() => MonetizationModule.renderCharts(), 50);
+      setTimeout(() => MonetizationModule.init(), 50);
     }
   };
 }
+
