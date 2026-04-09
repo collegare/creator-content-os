@@ -12,7 +12,7 @@ const SUPABASE_URL = 'https://iwglhesnhmpdqcoxcgjp.supabase.co';
 const SUPABASE_ANON_KEY = 'YOUR_ANON_KEY_HERE'; // ← Paste your anon key here
 
 // Initialize Supabase client (loaded from CDN in index.html)
-const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
 // ============================================================
 // AUTH HELPERS
