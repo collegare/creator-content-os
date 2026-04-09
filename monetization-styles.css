@@ -1,3 +1,176 @@
+
+
+/* ===== Roadmap Question Flow ===== */
+
+.roadmap-initial-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  padding: 3rem 1rem;
+  gap: 1.5rem;
+}
+
+.roadmap-initial-icon {
+  font-size: 3rem;
+  color: #6B2D0F;
+  opacity: 0.6;
+}
+
+.roadmap-question-card {
+  max-width: 560px;
+  margin: 0 auto;
+  padding: 2rem;
+  animation: fadeIn 0.3s ease;
+}
+
+.roadmap-progress-bar {
+  height: 6px;
+  background: #e6d5c3;
+  border-radius: 3px;
+  margin-bottom: 1.5rem;
+  overflow: hidden;
+}
+
+.roadmap-progress-fill {
+  height: 100%;
+  background: linear-gradient(90deg, #6B2D0F, #C4841D);
+  border-radius: 3px;
+  transition: width 0.4s ease;
+}
+
+.roadmap-step-label {
+  font-size: 0.8rem;
+  color: #9b8b7e;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  font-weight: 600;
+  margin-bottom: 0.75rem;
+}
+
+.roadmap-question-text {
+  font-size: 1.35rem;
+  font-weight: 700;
+  color: #3a2a1a;
+  margin: 0 0 0.5rem 0;
+  line-height: 1.3;
+}
+
+.roadmap-question-subtitle {
+  font-size: 0.95rem;
+  color: #6b5a47;
+  margin: 0 0 1.5rem 0;
+}
+
+.roadmap-input {
+  width: 100%;
+  padding: 0.875rem 1rem;
+  border: 2px solid #e6d5c3;
+  border-radius: 8px;
+  font-size: 1rem;
+  font-family: inherit;
+  color: #3a2a1a;
+  background: #fff;
+  transition: border-color 0.2s;
+  box-sizing: border-box;
+  margin-bottom: 1rem;
+}
+
+.roadmap-input:focus {
+  outline: none;
+  border-color: #6B2D0F;
+  box-shadow: 0 0 0 3px rgba(107, 45, 15, 0.1);
+}
+
+.roadmap-input::placeholder {
+  color: #b8a898;
+}
+
+.roadmap-options {
+  display: flex;
+  flex-direction: column;
+  gap: 0.625rem;
+}
+
+.roadmap-options.multi {
+  flex-direction: row;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.roadmap-option-btn {
+  display: block;
+  width: 100%;
+  padding: 0.875rem 1rem;
+  background: #fff;
+  border: 2px solid #e6d5c3;
+  border-radius: 8px;
+  font-size: 0.95rem;
+  font-family: inherit;
+  color: #3a2a1a;
+  text-align: left;
+  cursor: pointer;
+  transition: all 0.2s;
+  font-weight: 500;
+}
+
+.roadmap-options.multi .roadmap-option-btn {
+  width: auto;
+  flex: 0 0 auto;
+  text-align: center;
+}
+
+.roadmap-option-btn:hover {
+  border-color: #6B2D0F;
+  background: #fdf6ef;
+}
+
+.roadmap-option-btn.selected {
+  border-color: #6B2D0F;
+  background: #6B2D0F;
+  color: #fff;
+}
+
+.roadmap-next-btn {
+  margin-top: 0.5rem;
+}
+
+.roadmap-back-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  background: none;
+  border: none;
+  color: #6b5a47;
+  font-size: 0.9rem;
+  font-family: inherit;
+  cursor: pointer;
+  padding: 0.5rem 0;
+  margin-top: 1rem;
+  transition: color 0.2s;
+}
+
+.roadmap-back-btn:hover {
+  color: #6B2D0F;
+}
+
+/* Responsive: Mobile */
+@media (max-width: 640px) {
+  .roadmap-question-card {
+    padding: 1.5rem 0.5rem;
+  }
+  .roadmap-question-text {
+    font-size: 1.15rem;
+  }
+  .roadmap-options.multi {
+    flex-direction: column;
+  }
+  .roadmap-options.multi .roadmap-option-btn {
+    width: 100%;
+    text-align: left;
+  }
+}
 /* Monetization Module Styles */
 
 /* ===== Summary Cards Grid ===== */
