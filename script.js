@@ -10,7 +10,7 @@
 // ---- Storage Keys ----
 const CONTENT_KEY = 'ccos_content';
 const FOCUS_KEY = 'ccos_focus';
-const REVIEW_KEY = 'ccos_review';
+const REVIEW_KEY = 'ccos_review'
 const ANALYSES_KEY = 'ccos_analyses';
 const PERF_KEY = 'ccos_performance';
 const SETTINGS_KEY = 'ccos_settings';
@@ -1427,7 +1427,7 @@ function initPlatformConnections() {
     toast(`Instagram connected${username ? ': @' + username : ''}!`);
 
     // Claim the connection for the current user
-    if (claimToken && DB.isAuthenticated()) {
+    if (claimToken && typeof DB !== 'undefined' && DB.isAuthenticated()) {
       DB.claimConnection(claimToken).then(() => {
         renderInstagramConnection();
       });
@@ -1464,7 +1464,7 @@ function initPlatformConnections() {
     const claimToken = params.get('tt_claim');
     toast(`TikTok connected${username ? ': @' + username : ''}!`);
 
-    if (claimToken && DB.isAuthenticated()) {
+    if (claimToken && typeof DB !== 'undefined' && DB.isAuthenticated()) {
       DB.claimConnection(claimToken).then(() => { renderTikTokConnection(); });
     } else if (claimToken) {
       localStorage.setItem('ccos_tt_claim', claimToken);
@@ -1490,11 +1490,11 @@ function initPlatformConnections() {
 
   // ── YouTube OAuth callback handling ──
   if (params.get('yt_connected') === 'true') {
-    const username = params.get('yt_username');
+    const username = params.get('yt_channel');
     const claimToken = params.get('yt_claim');
     toast(`YouTube connected${username ? ': ' + username : ''}!`);
 
-    if (claimToken && DB.isAuthenticated()) {
+    if (claimToken && typeof DB !== 'undefined' && DB.isAuthenticated()) {
       DB.claimConnection(claimToken).then(() => { renderYouTubeConnection(); });
     } else if (claimToken) {
       localStorage.setItem('ccos_yt_claim', claimToken);
@@ -1534,7 +1534,7 @@ async function renderTikTokConnection() {
   const username = localStorage.getItem('ccos_tt_username');
 
   let connection = null;
-  if (DB.isAuthenticated()) {
+  if (typeof DB !== 'undefined' && DB.isAuthenticated()) {
     try {
       const connections = await DB.getConnections();
       connection = connections.find(c => c.platform === 'tiktok' && c.status === 'active');
@@ -1662,7 +1662,7 @@ async function renderInstagramConnection() {
 
   // If authenticated, check Supabase for real connection
   let connection = null;
-  if (DB.isAuthenticated()) {
+  if (typeof DB !== 'undefined' && DB.isAuthenticated()) {
     try {
       const connections = await DB.getConnections();
       connection = connections.find(c => c.platform === 'instagram' && c.status === 'active');
@@ -1808,7 +1808,7 @@ async function renderYouTubeConnection() {
   const username = localStorage.getItem('ccos_yt_username');
 
   let connection = null;
-  if (DB.isAuthenticated()) {
+  if (typeof DB !== 'undefined' && DB.isAuthenticated()) {
     try {
       const connections = await DB.getConnections();
       connection = connections.find(c => c.platform === 'youtube' && c.status === 'active');
