@@ -24,6 +24,7 @@
 
   <!-- App Stylesheet -->
   <link rel="stylesheet" href="styles.css" />
+  <link rel="stylesheet" href="monetization-styles.css" />
 </head>
 <body>
 
@@ -634,71 +635,153 @@
 
     <!-- ========== MONETIZATION ========== -->
     <section class="tab-content" id="tab-monetization">
-      <div class="page-header">
-        <div>
-          <h1 class="page-title">Monetization</h1>
-          <p class="page-subtitle">Strategic revenue planning based on your audience, niche, and creator stage.</p>
+  <div class="monetization-container">
+    
+    <!-- Revenue Summary Cards -->
+    <div class="monet-summary-grid">
+      <div class="monet-summary-card">
+        <div class="monet-summary-icon">
+          <i class="ph ph-currency-dollar"></i>
+        </div>
+        <div class="monet-summary-content">
+          <div class="monet-summary-label">Total Revenue</div>
+          <div class="monet-summary-value" id="totalRevenueValue">$0</div>
         </div>
       </div>
-
-      <!-- Monetization Stage -->
-      <div class="monet-stage-banner" id="monetStageBanner">
-        <!-- Populated by JS: stage detection based on follower count -->
-      </div>
-
-      <!-- Revenue Streams Grid -->
-      <div class="monet-streams-grid" id="monetStreamsGrid">
-        <!-- Populated by JS: brand deals, digital products, affiliate, etc. -->
-      </div>
-
-      <!-- Revenue Tracker -->
-      <div class="card monet-tracker-card">
-        <div class="card-header">
-          <i class="ph ph-wallet"></i>
-          <h3>Revenue Tracker</h3>
+      
+      <div class="monet-summary-card">
+        <div class="monet-summary-icon">
+          <i class="ph ph-calendar-blank"></i>
         </div>
-        <div class="card-body">
-          <div class="monet-tracker-form">
-            <div class="form-row four-col">
-              <div class="form-group"><label>Month</label><input type="month" id="monetMonth" /></div>
-              <div class="form-group"><label>Revenue Stream</label>
-                <select id="monetStream">
-                  <option value="Brand Deals">Brand Deals</option>
-                  <option value="Digital Products">Digital Products</option>
-                  <option value="Affiliate">Affiliate</option>
-                  <option value="Services">Services</option>
-                  <option value="Memberships">Memberships</option>
-                  <option value="Consulting">Consulting</option>
-                  <option value="Ad Revenue">Ad Revenue</option>
-                  <option value="Other">Other</option>
-                </select>
-              </div>
-              <div class="form-group"><label>Amount ($)</label><input type="text" id="monetAmount" placeholder="0" /></div>
-              <div class="form-group"><label>Notes</label><input type="text" id="monetNotes" placeholder="Details" /></div>
+        <div class="monet-summary-content">
+          <div class="monet-summary-label">This Month</div>
+          <div class="monet-summary-value" id="thisMonthRevenueValue">$0</div>
+        </div>
+      </div>
+      
+      <div class="monet-summary-card">
+        <div class="monet-summary-icon">
+          <i class="ph ph-trophy"></i>
+        </div>
+        <div class="monet-summary-content">
+          <div class="monet-summary-label">Best Month</div>
+          <div class="monet-summary-value" id="bestMonthRevenueValue">$0</div>
+        </div>
+      </div>
+      
+      <div class="monet-summary-card">
+        <div class="monet-summary-icon">
+          <i class="ph ph-trend-up"></i>
+        </div>
+        <div class="monet-summary-content">
+          <div class="monet-summary-label">Growth (MoM)</div>
+          <div class="monet-summary-value" id="growthPercentValue">0%</div>
+          <div class="monet-summary-change" id="growthChangeIndicator"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Revenue Charts Card -->
+    <div class="card monet-chart-card">
+      <div class="card-header">
+        <h3>Revenue Overview</h3>
+        <div class="monet-chart-filters">
+          <button class="filter-btn active" data-months="3">Last 3 Months</button>
+          <button class="filter-btn" data-months="6">Last 6 Months</button>
+          <button class="filter-btn" data-months="12">Last 12 Months</button>
+        </div>
+      </div>
+      <div class="card-body">
+        <div class="monet-chart-wrapper">
+          <canvas id="revenueBarChart" height="300"></canvas>
+        </div>
+        <div class="monet-trend-wrapper">
+          <canvas id="revenueTrendChart" height="150"></canvas>
+        </div>
+      </div>
+    </div>
+
+    <!-- Log Revenue Card -->
+    <div class="card monet-log-card">
+      <div class="card-header">
+        <h3>Log Revenue</h3>
+      </div>
+      <div class="card-body">
+        <form id="logRevenueForm" class="revenue-form">
+          <div class="form-row">
+            <div class="form-group">
+              <label for="revenueDate">Date</label>
+              <input type="date" id="revenueDate" required>
             </div>
-            <button class="btn btn-primary" id="saveMonetBtn"><i class="ph ph-floppy-disk"></i> Log Revenue</button>
+            <div class="form-group">
+              <label for="revenueType">Revenue Type</label>
+              <select id="revenueType" required>
+                <option value="">Select type...</option>
+                <option value="Brand Deals">Brand Deals</option>
+                <option value="Digital Products">Digital Products</option>
+                <option value="Affiliate">Affiliate</option>
+                <option value="Services">Services</option>
+                <option value="Memberships">Memberships</option>
+                <option value="Consulting">Consulting</option>
+                <option value="Ad Revenue">Ad Revenue</option>
+                <option value="Other">Other</option>
+              </select>
+            </div>
           </div>
-          <div class="monet-history" id="monetHistory"></div>
-          <div class="empty-state" id="monet-empty">
-            <i class="ph ph-wallet"></i>
-            <p>No revenue logged yet. Start tracking your income streams above.</p>
+          
+          <div class="form-row">
+            <div class="form-group">
+              <label for="revenueAmount">Amount ($)</label>
+              <input type="number" id="revenueAmount" min="0" step="0.01" placeholder="0.00" required>
+            </div>
+            <div class="form-group">
+              <label for="revenueNotes">Notes (optional)</label>
+              <input type="text" id="revenueNotes" placeholder="e.g., Q2 sponsorship">
+            </div>
           </div>
-        </div>
-      </div>
+          
+          <button type="submit" class="btn btn-primary" id="logRevenueBtn">
+            <i class="ph ph-plus"></i> Log Revenue
+          </button>
+        </form>
 
-      <!-- Monetization Strategy -->
-      <div class="card monet-strategy-card">
-        <div class="card-header">
-          <i class="ph ph-strategy"></i>
-          <h3>Your Monetization Roadmap</h3>
-        </div>
-        <div class="card-body">
-          <div id="monetRoadmap" class="monet-roadmap">
-            <!-- Populated by JS based on creator stage -->
+        <!-- Transaction History -->
+        <div class="monet-history-section">
+          <h4>Transaction History</h4>
+          <div class="monet-history-list" id="revenueHistory">
+            <div class="monet-history-empty">No transactions logged yet</div>
           </div>
         </div>
       </div>
-    </section>
+    </div>
+
+    <!-- AI Monetization Roadmap Card -->
+    <div class="card roadmap-card">
+      <div class="card-header">
+        <div class="roadmap-header-content">
+          <h3>Your AI Monetization Roadmap</h3>
+          <p class="roadmap-subtitle">Get a personalized monetization strategy based on your niche, audience, and goals.</p>
+        </div>
+      </div>
+      <div class="card-body">
+        <div id="roadmapContainer">
+          <div id="roadmapInitial" class="roadmap-initial-state">
+            <button type="button" class="btn btn-primary" id="generateRoadmapBtn">
+              <i class="ph ph-sparkles"></i> Generate My Roadmap
+            </button>
+          </div>
+          <div id="roadmapLoading" class="roadmap-loading" style="display: none;">
+            <div class="spinner"></div>
+            <p>Crafting your personalized roadmap...</p>
+          </div>
+          <div id="roadmapResults" class="roadmap-results" style="display: none;">
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</section>
 
     <!-- ========== QUARTERLY PLAN ========== -->
     <section class="tab-content" id="tab-quarterly">
@@ -1196,5 +1279,7 @@
 
   <script src="supabase-config.js"></script>
   <script src="script.js"></script>
+  <script src="monetization.js"></script>
 </body>
 </html>
+
